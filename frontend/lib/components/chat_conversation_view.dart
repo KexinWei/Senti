@@ -18,17 +18,16 @@ Color getMoodColor(String mood) {
   }
 }
 
+
 class ChatConversationView extends StatefulWidget {
   final List<String> messages;
   final TextEditingController chatController;
   final VoidCallback onSendMessage;
-  final Target target;
 
   ChatConversationView({
     required this.messages,
     required this.chatController,
     required this.onSendMessage,
-    required this.target,
   });
 
   @override
@@ -66,6 +65,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   Widget build(BuildContext context) {
     // Determine the mood color from the target's current mood.
     final moodColor = getMoodColor(widget.target.currentMood);
+
     return Row(
       children: [
         if (_isHistoryVisible)
@@ -137,6 +137,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                               width: 1.0,
                             ),
                           ),
+
                         ),
                       ),
                     ),
