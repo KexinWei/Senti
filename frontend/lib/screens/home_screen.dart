@@ -10,7 +10,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _isHistoryVisible = true;
   List<String> messages = [];
   List<String> chatHistory =
       []; // This list stores conversation session titles.
@@ -44,12 +43,6 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   Target? selectedTarget;
-
-  void _toggleHistory() {
-    setState(() {
-      _isHistoryVisible = !_isHistoryVisible;
-    });
-  }
 
   void _sendMessage() {
     String message = _chatController.text;
@@ -100,13 +93,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        leading: IconButton(
-          icon: Icon(
-            _isHistoryVisible ? Icons.visibility_off : Icons.visibility,
-          ),
-          tooltip: _isHistoryVisible ? 'Hide History' : 'Show History',
-          onPressed: _toggleHistory,
-        ),
         title:
             selectedTarget != null
                 ? Column(
@@ -121,6 +107,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
                 : Text("Chat App"),
         actions: [
+          if (selectedTarget != null)
+            IconButton(
+              icon: Icon(Icons.home),
+              tooltip: "Home",
+              onPressed: _startNewChat,
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: Row(
@@ -135,17 +127,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Row(
         children: [
-          if (_isHistoryVisible)
-            LeftSidebar(
-              chatHistory: chatHistory,
-              onNewChat: _startNewChat,
-              onSessionSelected: (sessionTitle) {
-                // For now, you can simply show a snackbar or later load the session.
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Selected session: $sessionTitle")),
-                );
-              },
-            ),
           Expanded(
             child:
                 selectedTarget == null
