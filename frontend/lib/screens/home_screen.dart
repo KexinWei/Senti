@@ -145,7 +145,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       messages: messages,
                       chatController: _chatController,
                       onSendMessage: _sendMessage,
-                      target: selectedTarget!, // Pass the selected target here
                     ),
           ),
         ],
