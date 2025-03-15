@@ -2,6 +2,23 @@ import 'package:flutter/material.dart';
 import '../models/target.dart';
 import '../components/left_sidebar.dart';
 
+// A helper function to map mood to a color.
+Color getMoodColor(String mood) {
+  switch (mood.toLowerCase()) {
+    case 'happy':
+      return Colors.orange;
+    case 'sad':
+      return Colors.blue;
+    case 'angry':
+      return Colors.red;
+    case 'calm':
+      return Colors.green;
+    default:
+      return Colors.grey;
+  }
+}
+
+
 class ChatConversationView extends StatefulWidget {
   final List<String> messages;
   final TextEditingController chatController;
@@ -46,6 +63,9 @@ class _ChatConversationViewState extends State<ChatConversationView> {
 
   @override
   Widget build(BuildContext context) {
+    // Determine the mood color from the target's current mood.
+    final moodColor = getMoodColor(widget.target.currentMood);
+
     return Row(
       children: [
         if (_isHistoryVisible)
@@ -76,6 +96,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                   ),
                 ],
               ),
+              // Removed the first Expanded TextField section.
               Expanded(
                 child: ListView.builder(
                   padding: EdgeInsets.all(8),
@@ -93,6 +114,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                   },
                 ),
               ),
+              // Chat input with styled text field using moodColor
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Row(
@@ -103,6 +125,19 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                         decoration: InputDecoration(
                           hintText: "Type your message...",
                           border: OutlineInputBorder(),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: moodColor,
+                              width: 2.0,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.grey,
+                              width: 1.0,
+                            ),
+                          ),
+
                         ),
                       ),
                     ),
