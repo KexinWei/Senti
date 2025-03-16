@@ -97,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentSession = session;
       });
     } catch (e) {
-      _showError('创建会话失败：${e.toString()}');
+      _showError('${e.toString()}');
     }
   }
 
@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentSession = session;
       });
     } catch (e) {
-      _showError('创建新会话失败：${e.toString()}');
+      _showError('${e.toString()}');
     }
   }
 
@@ -132,10 +132,10 @@ class _HomeScreenState extends State<HomeScreen> {
         if (messageCount == 0) {
           // 如果会话为空，删除它
           await _apiService.deleteSession(_currentSession!.id);
-          print('成功删除空会话: ${_currentSession!.id}');
+          print('${_currentSession!.id}');
         }
       } catch (e) {
-        print('删除空会话失败: ${e.toString()}');
+        print('${e.toString()}');
       }
     }
 
@@ -158,10 +158,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 leading: IconButton(
                   icon: Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: _backToPeopleSelection,
-                  tooltip: '返回选择联系人',
+                  tooltip: '',
                 ),
                 title: Text(
-                  '与 ${_selectedPeople!.name} 的对话',
+                  '${_selectedPeople!.name}',
                   style: TextStyle(color: Colors.white),
                 ),
               )
