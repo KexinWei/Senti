@@ -2,300 +2,264 @@ import 'package:flutter/material.dart';
 import '../models/people.dart';
 import '../models/chat_session.dart';
 import '../models/message.dart';
-import '../components/left_sidebar.dart';
+import '../services/api_service.dart';
 
 class ChatConversationView extends StatefulWidget {
-  final List<String>
-  messages; // Initial messages from HomeScreen (usually empty)
-  final TextEditingController chatController;
-  final VoidCallback onSendMessage;
   final People people;
+  final ChatSession session;
 
-  ChatConversationView({
-    required this.messages,
-    required this.chatController,
-    required this.onSendMessage,
+  const ChatConversationView({
+    Key? key,
     required this.people,
-  });
+    required this.session,
+  }) : super(key: key);
 
   @override
   _ChatConversationViewState createState() => _ChatConversationViewState();
 }
 
 class _ChatConversationViewState extends State<ChatConversationView> {
-  bool _isHistoryVisible = false;
+  final ApiService _apiService = ApiService();
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
-  ChatSession? _currentSession;
-  List<ChatSession> _sessionHistory = [];
+  List<Message> _messages = [];
+  bool _isLoading = true;
+  bool _isSending = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    widget.chatController.addListener(_onTextChanged);
-    _currentSession = ChatSession(
-      sessionId: UniqueKey().toString(), // or use another unique identifier
-      title: "Chat with ${widget.people.name}",
-      lastMessageTime: DateTime.now(),
-      messages: [],
-    );
+    _loadMessages();
   }
 
-  void _onTextChanged() {
-    setState(() {});
+  @override
+  void didUpdateWidget(ChatConversationView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.session.id != widget.session.id) {
+      _loadMessages();
+    }
   }
 
-  /// When the user decides to finish the current chat and start a new one,
-  /// clear the current session so that a new session is created upon the next message.
-  void _startNewChat(People people) {
-    setState(() {
-      _currentSession = null;
-    });
-  }
+  Future<void> _loadMessages() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
 
-  void _handleSendMessage() {
-    final text = widget.chatController.text.trim();
-    if (text.isEmpty) return;
-    widget.onSendMessage();
-
-    setState(() {
-      final now = DateTime.now();
-
-      // If no session is active, create a new one.
-      if (_currentSession == null) {
-        _currentSession = ChatSession(
-          sessionId: UniqueKey().toString(),
-          title: "Chat with ${widget.people.name}",
-          lastMessageTime: now,
-          messages: [],
-        );
-      } else {
-        // Update the session's last message time and title.
-        _currentSession!.lastMessageTime = now;
-        _currentSession!.title = "Chat with ${widget.people.name}";
-      }
-
-      // Create a new message (you can customize the sender logic as needed).
-      Message newUserMessage = Message(
-        sessionId: _currentSession!.sessionId,
-        sender: "You",
-        content: text,
-        createdAt: now,
+      final messages = await _apiService.getMessagesBySessionId(
+        widget.session.id,
       );
-      _currentSession!.messages.add(newUserMessage);
+      setState(() {
+        _messages = messages;
+        _isLoading = false;
+      });
+      _scrollToBottom();
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
-      // Optionally, add a dummy AI reply:
-      Message aiReply = Message(
-        sessionId: _currentSession!.sessionId,
-        sender: "AI",
-        content: "This is a dummy reply",
-        createdAt: now,
+  Future<void> _sendMessage() async {
+    final content = _messageController.text.trim();
+    if (content.isEmpty || _isSending) return;
+
+    try {
+      setState(() {
+        _isSending = true;
+      });
+
+      await _apiService.sendMessage(widget.session.id, content);
+      _messageController.clear();
+      await _loadMessages(); // Reload messages to get the AI response
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to send message: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
       );
-      _currentSession!.messages.add(aiReply);
-
-      // Update session history: if this session is not already in history, add it.
-      if (!_sessionHistory.contains(_currentSession)) {
-        _sessionHistory.add(_currentSession!);
-      }
-    });
-    widget.chatController.clear();
+    } finally {
+      setState(() {
+        _isSending = false;
+      });
+    }
   }
 
-  /// Toggle the visibility of the left sidebar.
-  void _toggleHistory() {
-    setState(() {
-      _isHistoryVisible = !_isHistoryVisible;
-    });
-  }
-
-  void _loadSession(String sessionId) {
-    setState(() {
-      _currentSession = _sessionHistory.firstWhere(
-        (session) => session.sessionId == sessionId,
-        orElse:
-            () =>
-                _currentSession!, // Optionally handle the case where the session is not found.
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
       );
-    });
-  }
-
-  // void _handleSendMessage() {
-  //   String message = widget.chatController.text.trim();
-  //   if (message.isEmpty) return;
-  //   widget.onSendMessage();
-  //   // Optionally, clear the text field after sending
-  //   widget.chatController.clear();
-  // }
-
-  void dispose() {
-    widget.chatController.removeListener(_onTextChanged);
-    super.dispose();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        if (_isHistoryVisible)
-          SafeArea(
-            child: LeftSidebar(
-              // Pass the list of session titles.
-              chatHistory: _sessionHistory,
-              currentPeople: widget.people,
-              // When "New Chat" is pressed in the sidebar, finish current session.
-              onNewChat: (people) => _startNewChat(people),
-              // When a session is selected from the sidebar, load its messages.
-              onSessionSelected: (sessionTitle) {
-                _loadSession(sessionTitle);
-              },
-              currentSessionId: _currentSession?.sessionId,
+        _buildHeader(),
+        Expanded(child: _buildMessageList()),
+        _buildInputArea(),
+      ],
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        border: Border(bottom: BorderSide(color: Colors.grey[800]!, width: 1)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: Colors.blue[700],
+            child: Text(
+              widget.people.name[0].toUpperCase(),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(
-              top: kToolbarHeight + 16.0,
-              bottom: 16.0,
-            ),
+          SizedBox(width: 12),
+          Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left column with toggle and new chat buttons
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              _isHistoryVisible
-                                  ? Icons.keyboard_arrow_left
-                                  : Icons.keyboard_arrow_right,
-                              size: 32,
-                              color: Colors.white,
-                            ),
-                            tooltip:
-                                _isHistoryVisible
-                                    ? 'Hide History'
-                                    : 'Show History',
-                            onPressed: _toggleHistory,
-                          ),
-                          SizedBox(height: 8),
-                          IconButton(
-                            icon: Icon(
-                              Icons.add,
-                              size: 32,
-                              color: Colors.white,
-                            ),
-                            tooltip: 'New Chat',
-                            onPressed: () => _startNewChat(widget.people),
-                          ),
-                        ],
-                      ),
-                      // Right side with text bubbles
-                      Expanded(
-                        child: ListView.builder(
-                          padding: EdgeInsets.only(
-                            top: 0,
-                            left: 8,
-                            right: 8,
-                            bottom: 8,
-                          ),
-                          itemCount: _currentSession?.messages.length ?? 0,
-                          itemBuilder: (context, index) {
-                            final message = _currentSession!.messages[index];
-                            bool isUser = message.sender != "AI";
-                            return Container(
-                              margin: EdgeInsets.symmetric(
-                                vertical: 4,
-                                horizontal: 16,
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    isUser
-                                        ? MainAxisAlignment.end
-                                        : MainAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          isUser
-                                              ? Colors.white
-                                              : Colors.blue[100],
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                        maxWidth:
-                                            MediaQuery.of(context).size.width *
-                                            0.7,
-                                      ),
-                                      child: Text(message.content),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                Text(
+                  widget.people.name,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                // Chat input with styled text field using moodColor
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: widget.chatController,
-                          textInputAction: TextInputAction.send,
-                          keyboardType: TextInputType.multiline,
-                          minLines: 1,
-                          maxLines: 5,
-                          style: TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: "Type your message...",
-                            border: OutlineInputBorder(),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                width: 2.0,
-                                color: Colors.white,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.grey,
-                                width: 1.0,
-                              ),
-                            ),
-                          ),
-                          onSubmitted: (value) {
-                            _handleSendMessage();
-                          },
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      IconButton(
-                        icon:
-                            widget.chatController.text.isNotEmpty
-                                ? Icon(Icons.send, color: Colors.white)
-                                : Icon(Icons.send, color: Colors.grey),
-                        onPressed:
-                            widget.chatController.text.isNotEmpty
-                                ? _handleSendMessage
-                                : null,
-                      ),
-                    ],
-                  ),
+                Text(
+                  widget.session.title,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  Widget _buildMessageList() {
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Error loading messages', style: TextStyle(color: Colors.red)),
+            SizedBox(height: 8),
+            ElevatedButton(onPressed: _loadMessages, child: Text('Retry')),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      padding: EdgeInsets.all(16),
+      itemCount: _messages.length,
+      itemBuilder: (context, index) {
+        final message = _messages[index];
+        final isUser = message.sender == 'user';
+
+        return Align(
+          alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: EdgeInsets.only(
+              bottom: 8,
+              left: isUser ? 64 : 0,
+              right: isUser ? 0 : 64,
+            ),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isUser ? Colors.blue[700] : Colors.grey[800],
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              message.content,
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInputArea() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        border: Border(top: BorderSide(color: Colors.grey[800]!, width: 1)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              style: TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Type your message...',
+                hintStyle: TextStyle(color: Colors.white70),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey[800],
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+              ),
+              onSubmitted: (_) => _sendMessage(),
+            ),
+          ),
+          SizedBox(width: 12),
+          IconButton(
+            icon:
+                _isSending
+                    ? SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                    : Icon(Icons.send),
+            color: Colors.white,
+            onPressed: _isSending ? null : _sendMessage,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 }

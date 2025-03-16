@@ -54,15 +54,62 @@ router.post("/", async (req, res) => {
     const insertParams = [session_id, sender, content];
     const userInsertResult = await runQuery(insertSQL, insertParams);
 
-    // 2. Retrieve all messages for this session and concatenate their content
+    // 2. Get the session and people information
+    const sessionSQL = `
+      SELECT s.*, p.name, p.relationship, p.description
+      FROM Sessions s 
+      JOIN People p ON s.people_id = p.id 
+      WHERE s.id = ?
+    `;
+    let sessionInfo;
+    try {
+      sessionInfo = await new Promise((resolve, reject) => {
+        db.get(sessionSQL, [session_id], (err, row) => {
+          if (err) {
+            console.error("Database error when fetching session info:", err);
+            reject(err);
+          } else {
+            console.log("Session info query result:", row);
+            resolve(row);
+          }
+        });
+      });
+
+      if (!sessionInfo) {
+        // 检查会话是否存在
+        const sessionExists = await new Promise((resolve) => {
+          db.get(
+            "SELECT id FROM Sessions WHERE id = ?",
+            [session_id],
+            (err, row) => {
+              resolve(row != null);
+            }
+          );
+        });
+
+        if (sessionExists) {
+          throw new Error("会话关联的用户信息不存在，请重新选择用户");
+        } else {
+          throw new Error("会话不存在，请重新开始对话");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to get session info:", err);
+      throw err;
+    }
+
+    // 3. Retrieve all messages for this session and concatenate their content
     const selectSQL =
       "SELECT * FROM Messages WHERE session_id = ? ORDER BY created_at ASC";
     const messages = await allQuery(selectSQL, [session_id]);
-    const conversation = messages
-      .map((msg) => `${msg.sender}: ${msg.content}`)
-      .join("\n");
 
-    // 3. Call the analyze endpoint
+    // 4. Create the conversation string with relationship context
+    const relationshipContext = `Context: The person you're analyzing has the following relationship with the user - ${sessionInfo.relationship}`;
+    const conversation = `${relationshipContext}\n\n${messages
+      .map((msg) => `${msg.sender}: ${msg.content}`)
+      .join("\n")}`;
+
+    // 5. Call the analyze endpoint
     try {
       const analysisResponse = await axios.post(
         "http://localhost:3000/api/analyze",
@@ -74,17 +121,17 @@ router.post("/", async (req, res) => {
       const analysis = analysisResponse.data.analysis;
 
       if (analysis && analysis.response) {
-        // 4. Extract fields for the AI messages
+        // 6. Extract fields for the AI messages
         const possibleCauses = analysis.response.possible_causes;
         const suggestion = analysis.response.suggestion;
         const combinedAnalysis = `${possibleCauses} ${suggestion}`;
 
-        // 5. Insert the AI message with combined analysis
+        // 7. Insert the AI message with combined analysis
         const aiInsertSQL =
           "INSERT INTO Messages (session_id, sender, content) VALUES (?, ?, ?)";
         await runQuery(aiInsertSQL, [session_id, "ai", combinedAnalysis]);
 
-        // 6. Respond with success message
+        // 8. Respond with success message
         res.status(201).json({
           message:
             "User message recorded and emotion analysis completed successfully.",

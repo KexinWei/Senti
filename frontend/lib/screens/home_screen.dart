@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/people.dart';
+import '../models/chat_session.dart';
 import '../components/people_selection_view.dart';
 import '../components/chat_conversation_view.dart';
+import '../components/left_sidebar.dart';
+import '../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -9,187 +12,230 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<String> messages = [];
-  List<String> chatHistory =
-      []; // This list stores conversation session titles.
-  final TextEditingController _chatController = TextEditingController();
-  bool _showAddUserForm = false;
+  final ApiService _apiService = ApiService();
 
-  // Dummy AI people generation helper.
-  People _createGeneratedPeople(
-    int id,
-    String name,
-    String relationship,
-    String description,
-    DateTime createdAt,
-  ) {
-    return People(
-      id: id,
-      name: name,
-      relationship: relationship,
-      description: description,
-      createdAt: createdAt,
-    );
+  List<People> _peoples = [];
+  People? _selectedPeople;
+  ChatSession? _currentSession;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPeoples();
   }
 
-  late List<People> peoples = [
-    _createGeneratedPeople(
-      1,
-      "Alice Johnson",
-      "Friend",
-      "bestie",
-      DateTime.now(),
-    ),
-    _createGeneratedPeople(2, "Bob Smith", "Boss", "hater", DateTime.now()),
-  ];
-
-  People? selectedPeople;
-
-  void _sendMessage() {
-    String message = _chatController.text;
-    if (message.isNotEmpty) {
+  // 加载用户列表
+  Future<void> _loadPeoples() async {
+    try {
       setState(() {
-        messages.add(message);
+        _isLoading = true;
+        _error = null;
       });
-      _chatController.clear();
+
+      final peoples = await _apiService.getPeople();
+      setState(() {
+        _peoples = peoples;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+      _showError('加载用户列表失败：${e.toString()}');
     }
   }
 
-  // Save current conversation session title to history (if any messages exist),
-  // then clear current conversation and selected people.
-  void _startNewChat() {
-    if (selectedPeople != null && messages.isNotEmpty) {
-      // Create a session title (for example, "Chat with Alice - 10:30 AM")
-      String sessionTitle = "Chat with ${selectedPeople!.name}";
-      chatHistory.add(sessionTitle);
-    }
-    setState(() {
-      selectedPeople = null;
-      messages.clear();
-      _showAddUserForm = false;
-    });
-  }
-
-  void _selectPeople(People people) {
-    setState(() {
-      selectedPeople = people;
-      messages.clear();
-      _showAddUserForm = false;
-    });
-  }
-
-  // Updated to use positional parameters.
-  void _createPeople(String name, String relationship) {
-    People newPeople = _createGeneratedPeople(
-      5,
-      name,
-      relationship,
-      "",
-      DateTime.now(),
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 3),
+      ),
     );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // 创建新用户
+  Future<void> _createPeople(String name, String relationship) async {
+    try {
+      setState(() {
+        _error = null;
+      });
+
+      final newPeople = await _apiService.createPeople(name, relationship);
+      setState(() {
+        _peoples.add(newPeople);
+      });
+      _showSuccess('创建用户成功！');
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+      _showError('创建用户失败：${e.toString()}');
+    }
+  }
+
+  // 选择用户
+  void _selectPeople(People people) async {
+    try {
+      final session = await _apiService.createSession(people.id!);
+      setState(() {
+        _selectedPeople = people;
+        _currentSession = session;
+      });
+    } catch (e) {
+      _showError('创建会话失败：${e.toString()}');
+    }
+  }
+
+  // 选择会话
+  void _selectSession(ChatSession session) {
     setState(() {
-      peoples.add(newPeople);
-      selectedPeople = newPeople;
-      messages.clear();
-      _showAddUserForm = false;
+      _currentSession = session;
+    });
+  }
+
+  // 开始新会话
+  Future<void> _startNewChat() async {
+    if (_selectedPeople == null) return;
+    try {
+      final session = await _apiService.createSession(_selectedPeople!.id!);
+      setState(() {
+        _currentSession = session;
+      });
+    } catch (e) {
+      _showError('创建新会话失败：${e.toString()}');
+    }
+  }
+
+  // 返回选择人界面
+  Future<void> _backToPeopleSelection() async {
+    if (_currentSession != null) {
+      try {
+        // 检查当前会话是否为空
+        final messageCount = await _apiService.getSessionMessageCount(
+          _currentSession!.id,
+        );
+        if (messageCount == 0) {
+          // 如果会话为空，删除它
+          await _apiService.deleteSession(_currentSession!.id);
+          print('成功删除空会话: ${_currentSession!.id}');
+        }
+      } catch (e) {
+        print('删除空会话失败: ${e.toString()}');
+      }
+    }
+
+    // 确保在所有操作完成后再更新状态
+    setState(() {
+      _selectedPeople = null;
+      _currentSession = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading:
-            selectedPeople != null
-                ? Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.home, size: 40, color: Colors.white),
-                        tooltip: "Home",
-                        onPressed: _startNewChat,
-                      ),
-                    ],
-                  ),
-                )
-                : null,
-        title: Padding(
-          padding: const EdgeInsets.only(top: 16.0),
-          child:
-              selectedPeople != null
-                  ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        selectedPeople!.name,
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      Text(
-                        selectedPeople!.relationship,
-                        style: TextStyle(fontSize: 12, color: Colors.white),
-                      ),
-                    ],
-                  )
-                  : Text("Senti", style: TextStyle(color: Colors.white)),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(top: 16.0, right: 8.0),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  child: Icon(Icons.person, color: Colors.white),
+      backgroundColor: Colors.grey[900],
+      appBar:
+          _selectedPeople != null
+              ? AppBar(
+                backgroundColor: Colors.grey[850],
+                elevation: 1,
+                leading: IconButton(
+                  icon: Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: _backToPeopleSelection,
+                  tooltip: '返回选择联系人',
                 ),
-                SizedBox(width: 8),
-                Text("Team Click", style: TextStyle(color: Colors.white)),
-              ],
+                title: Text(
+                  '与 ${_selectedPeople!.name} 的对话',
+                  style: TextStyle(color: Colors.white),
+                ),
+              )
+              : null,
+      body: Row(
+        children: [
+          if (_selectedPeople != null)
+            Container(
+              width: 300,
+              child: LeftSidebar(
+                currentPeople: _selectedPeople!,
+                onSessionSelected: _selectSession,
+                onNewChat: _startNewChat,
+              ),
             ),
+          Expanded(
+            child:
+                _selectedPeople == null || _currentSession == null
+                    ? _buildPeopleSelection()
+                    : ChatConversationView(
+                      people: _selectedPeople!,
+                      session: _currentSession!,
+                    ),
           ),
         ],
       ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0A1321), Color(0xFF1B3157)],
-          ),
-        ),
-        child: Row(
+    );
+  }
+
+  Widget _buildPeopleSelection() {
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child:
-                  selectedPeople == null
-                      ? PeopleSelectionView(
-                        peoples: peoples,
-                        showAddUserForm: _showAddUserForm,
-                        onPeopleSelected: _selectPeople,
-                        onShowAddForm: () {
-                          setState(() {
-                            _showAddUserForm = true;
-                          });
-                        },
-                        onCreatePeople: _createPeople,
-                      )
-                      : ChatConversationView(
-                        messages: messages,
-                        chatController: _chatController,
-                        onSendMessage: _sendMessage,
-                        people: selectedPeople!,
-                      ),
+            CircularProgressIndicator(color: Colors.white),
+            SizedBox(height: 16),
+            Text('加载中...', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, color: Colors.red, size: 48),
+            SizedBox(height: 16),
+            Text('出错了', style: TextStyle(color: Colors.red, fontSize: 18)),
+            SizedBox(height: 8),
+            Text(
+              _error!,
+              style: TextStyle(color: Colors.red[300]),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _loadPeoples,
+              icon: Icon(Icons.refresh),
+              label: Text('重试'),
             ),
           ],
         ),
-      ),
+      );
+    }
+
+    return PeopleSelectionView(
+      peoples: _peoples,
+      showAddUserForm: false,
+      onPeopleSelected: _selectPeople,
+      onShowAddForm: () {},
+      onCreatePeople: _createPeople,
     );
   }
 }
