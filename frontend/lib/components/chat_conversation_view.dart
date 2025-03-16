@@ -4,7 +4,8 @@ import '../models/people.dart';
 import '../components/left_sidebar.dart';
 
 class ChatConversationView extends StatefulWidget {
-  final List<String> messages; // Initial messages from HomeScreen (usually empty)
+  final List<String>
+  messages; // Initial messages from HomeScreen (usually empty)
   final TextEditingController chatController;
   final VoidCallback onSendMessage;
   final People people;
@@ -22,6 +23,7 @@ class ChatConversationView extends StatefulWidget {
 
 class _ChatConversationViewState extends State<ChatConversationView> {
   bool _isHistoryVisible = false;
+
   /// Map to store past sessions.
   /// Key: session title (e.g. "Chat with Alice ## 2023-03-15 14:20")
   /// Value: list of messages for that session.
@@ -37,7 +39,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
     _currentMessages = List.from(widget.messages);
     widget.chatController.addListener(_onTextChanged);
   }
-  
+
   void _onTextChanged() {
     setState(() {});
   }
@@ -45,14 +47,17 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   /// When the user decides to finish the current chat and start a new one,
   /// save the current session (if not empty) into the session history.
   void _startNewChat(People people) {
-    if (_currentMessages.isNotEmpty) {
-      // Create a session title including the current date/time.
-      final now = DateTime.now();
-      final formattedDate = DateFormat(defaultDatetimeFormat).format(now);
-      String sessionTitle = "Chat with ${target.name} ## $formattedDate";
-      _sessionHistory[sessionTitle] = List.from(_currentMessages);
-      _currentMessages.clear();
-    }
+    setState(() {
+      if (_currentMessages.isNotEmpty) {
+        // Create a session title including the current date/time.
+        final now = DateTime.now();
+        final formattedDate = DateFormat(defaultDatetimeFormat).format(now);
+        String sessionTitle = "Chat with ${people.name} ## $formattedDate";
+        _sessionHistory[sessionTitle] = List.from(_currentMessages);
+      }
+      // Clear current messages to start a new chat.
+      _currentMessages = [];
+    });
   }
 
   /// When a message is sent, append it (and, for demo, a dummy AI reply) to current messages.
@@ -76,20 +81,20 @@ class _ChatConversationViewState extends State<ChatConversationView> {
       _isHistoryVisible = !_isHistoryVisible;
     });
   }
-  
+
   void _loadSession(String sessionTitle) {
-  setState(() {
-    _currentMessages = List.from(_sessionHistory[sessionTitle] ?? []);
-  });
+    setState(() {
+      _currentMessages = List.from(_sessionHistory[sessionTitle] ?? []);
+    });
   }
 
-  void _handleSendMessage() {
-    String message = widget.chatController.text.trim();
-    if (message.isEmpty) return;
-    widget.onSendMessage();
-    // Optionally, clear the text field after sending
-    widget.chatController.clear();
-  }
+  // void _handleSendMessage() {
+  //   String message = widget.chatController.text.trim();
+  //   if (message.isEmpty) return;
+  //   widget.onSendMessage();
+  //   // Optionally, clear the text field after sending
+  //   widget.chatController.clear();
+  // }
 
   /// Get a list of session titles for the left sidebar.
   List<String> get _chatHistoryTitles {
@@ -107,29 +112,35 @@ class _ChatConversationViewState extends State<ChatConversationView> {
       children: [
         if (_isHistoryVisible)
           SafeArea(
-            child:  LeftSidebar(
-            // Pass the list of session titles.
-            chatHistory: _chatHistoryTitles,
-            currentPeople: widget.people,
-            // When "New Chat" is pressed in the sidebar, finish current session.
-            onNewChat: (people) => _startNewChat(people),
-            // When a session is selected from the sidebar, load its messages.
-            onSessionSelected: (sessionTitle) {
-              _loadSession(sessionTitle);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("Selected session: $sessionTitle"),
-                  action: SnackBarAction(label: "OK", onPressed: (){
-                    // pass
-                  },),
-                ),
-              );
-            },
+            child: LeftSidebar(
+              // Pass the list of session titles.
+              chatHistory: _chatHistoryTitles,
+              currentPeople: widget.people,
+              // When "New Chat" is pressed in the sidebar, finish current session.
+              onNewChat: (people) => _startNewChat(people),
+              // When a session is selected from the sidebar, load its messages.
+              onSessionSelected: (sessionTitle) {
+                _loadSession(sessionTitle);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Selected session: $sessionTitle"),
+                    action: SnackBarAction(
+                      label: "OK",
+                      onPressed: () {
+                        // pass
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(top: kToolbarHeight + 16.0),
+            padding: const EdgeInsets.only(
+              top: kToolbarHeight + 16.0,
+              bottom: 16.0,
+            ),
             child: Column(
               children: [
                 Expanded(
@@ -175,10 +186,10 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                             right: 8,
                             bottom: 8,
                           ),
-                          itemCount: widget.messages.length,
+                          itemCount: _currentMessages.length,
                           itemBuilder: (context, index) {
                             bool isUser =
-                                !widget.messages[index].startsWith("AI:");
+                                !_currentMessages[index].startsWith("AI:");
                             return Container(
                               margin: EdgeInsets.symmetric(
                                 vertical: 4,
@@ -203,7 +214,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                                             MediaQuery.of(context).size.width *
                                             0.7,
                                       ),
-                                      child: Text(widget.messages[index]),
+                                      child: Text(_currentMessages[index]),
                                     ),
                                   ),
                                 ],
