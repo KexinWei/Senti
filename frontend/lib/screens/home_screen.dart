@@ -93,6 +93,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
+        leading:
+            selectedTarget != null
+                ? IconButton(
+                  icon: Icon(Icons.home),
+                  tooltip: "Home",
+                  onPressed: _startNewChat,
+                )
+                : null,
         title:
             selectedTarget != null
                 ? Column(
@@ -107,12 +115,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
                 : Text("Chat App"),
         actions: [
-          if (selectedTarget != null)
-            IconButton(
-              icon: Icon(Icons.home),
-              tooltip: "Home",
-              onPressed: _startNewChat,
-            ),
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: Row(
