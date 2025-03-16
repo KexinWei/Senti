@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // For date formatting
 import '../models/people.dart';
+import '../models/chat_session.dart';
+import '../models/message.dart';
 import '../components/left_sidebar.dart';
 
 class ChatConversationView extends StatefulWidget {
@@ -24,20 +26,19 @@ class ChatConversationView extends StatefulWidget {
 class _ChatConversationViewState extends State<ChatConversationView> {
   bool _isHistoryVisible = false;
 
-  /// Map to store past sessions.
-  /// Key: session title (e.g. "Chat with Alice ## 2023-03-15 14:20")
-  /// Value: list of messages for that session.
-  Map<String, List<String>> _sessionHistory = {};
-
-  /// Current session messages (the conversation in progress)
-  late List<String> _currentMessages;
+  ChatSession? _currentSession;
+  List<ChatSession> _sessionHistory = [];
 
   @override
   void initState() {
     super.initState();
-    // Initialize current messages with what is passed from HomeScreen.
-    _currentMessages = List.from(widget.messages);
     widget.chatController.addListener(_onTextChanged);
+    _currentSession = ChatSession(
+      sessionId: UniqueKey().toString(), // or use another unique identifier
+      title: "Chat with ${widget.people.name}",
+      lastMessageTime: DateTime.now(),
+      messages: [],
+    );
   }
 
   void _onTextChanged() {
@@ -45,33 +46,60 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   }
 
   /// When the user decides to finish the current chat and start a new one,
-  /// save the current session (if not empty) into the session history.
+  /// clear the current session so that a new session is created upon the next message.
   void _startNewChat(People people) {
     setState(() {
-      if (_currentMessages.isNotEmpty) {
-        // Create a session title including the current date/time.
-        final now = DateTime.now();
-        final formattedDate = DateFormat(defaultDatetimeFormat).format(now);
-        String sessionTitle = "Chat with ${people.name} ## $formattedDate";
-        _sessionHistory[sessionTitle] = List.from(_currentMessages);
-      }
-      // Clear current messages to start a new chat.
-      _currentMessages = [];
+      _currentSession = null;
     });
   }
 
-  /// When a message is sent, append it (and, for demo, a dummy AI reply) to current messages.
   void _handleSendMessage() {
     final text = widget.chatController.text.trim();
     if (text.isEmpty) return;
     widget.onSendMessage();
 
     setState(() {
-      _currentMessages.add("You: $text");
-      _currentMessages.add("AI: This is a dummy reply");
-    });
+      final now = DateTime.now();
+      final formattedDate = DateFormat(defaultDatetimeFormat).format(now);
 
-    widget.onSendMessage();
+      // If no session is active, create a new one.
+      if (_currentSession == null) {
+        _currentSession = ChatSession(
+          sessionId: UniqueKey().toString(),
+          title: "Chat with ${widget.people.name} ## $formattedDate",
+          lastMessageTime: now,
+          messages: [],
+        );
+      } else {
+        // Update the session's last message time and title.
+        _currentSession!.lastMessageTime = now;
+        _currentSession!.title =
+            "Chat with ${widget.people.name} ## $formattedDate";
+      }
+
+      // Create a new message (you can customize the sender logic as needed).
+      Message newUserMessage = Message(
+        sessionId: _currentSession!.sessionId,
+        sender: "You",
+        content: text,
+        createdAt: now,
+      );
+      _currentSession!.messages.add(newUserMessage);
+
+      // Optionally, add a dummy AI reply:
+      Message aiReply = Message(
+        sessionId: _currentSession!.sessionId,
+        sender: "AI",
+        content: "This is a dummy reply",
+        createdAt: now,
+      );
+      _currentSession!.messages.add(aiReply);
+
+      // Update session history: if this session is not already in history, add it.
+      if (!_sessionHistory.contains(_currentSession)) {
+        _sessionHistory.add(_currentSession!);
+      }
+    });
     widget.chatController.clear();
   }
 
@@ -84,7 +112,11 @@ class _ChatConversationViewState extends State<ChatConversationView> {
 
   void _loadSession(String sessionTitle) {
     setState(() {
-      _currentMessages = List.from(_sessionHistory[sessionTitle] ?? []);
+      _currentSession = _sessionHistory.firstWhere(
+        (session) => session.title == sessionTitle,
+        orElse:
+            () => _currentSession!, // or handle not found case appropriately
+      );
     });
   }
 
@@ -98,7 +130,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
 
   /// Get a list of session titles for the left sidebar.
   List<String> get _chatHistoryTitles {
-    return _sessionHistory.keys.toList();
+    return _sessionHistory.map((session) => session.title).toList();
   }
 
   void dispose() {
@@ -121,17 +153,6 @@ class _ChatConversationViewState extends State<ChatConversationView> {
               // When a session is selected from the sidebar, load its messages.
               onSessionSelected: (sessionTitle) {
                 _loadSession(sessionTitle);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("Selected session: $sessionTitle"),
-                    action: SnackBarAction(
-                      label: "OK",
-                      onPressed: () {
-                        // pass
-                      },
-                    ),
-                  ),
-                );
               },
             ),
           ),
@@ -186,10 +207,10 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                             right: 8,
                             bottom: 8,
                           ),
-                          itemCount: _currentMessages.length,
+                          itemCount: _currentSession?.messages.length ?? 0,
                           itemBuilder: (context, index) {
-                            bool isUser =
-                                !_currentMessages[index].startsWith("AI:");
+                            final message = _currentSession!.messages[index];
+                            bool isUser = message.sender != "AI";
                             return Container(
                               margin: EdgeInsets.symmetric(
                                 vertical: 4,
@@ -205,7 +226,9 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                                     padding: EdgeInsets.all(12),
                                     decoration: BoxDecoration(
                                       color:
-                                          isUser ? Colors.white : Colors.blue,
+                                          isUser
+                                              ? Colors.white
+                                              : Colors.blue[100],
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: ConstrainedBox(
@@ -214,7 +237,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                                             MediaQuery.of(context).size.width *
                                             0.7,
                                       ),
-                                      child: Text(_currentMessages[index]),
+                                      child: Text(message.content),
                                     ),
                                   ),
                                 ],
