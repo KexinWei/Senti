@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/target.dart';
-import '../components/target_selection_view.dart';
+import '../models/people.dart';
+import '../components/people_selection_view.dart';
 import '../components/chat_conversation_view.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,33 +15,41 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _chatController = TextEditingController();
   bool _showAddUserForm = false;
 
-  // Dummy AI target generation helper.
-  Target _createGeneratedTarget(String name, String relationship) {
-    return Target(
+  // Dummy AI people generation helper.
+  People _createGeneratedPeople(
+    int id,
+    String name,
+    String relationship,
+    String description,
+    DateTime createdAt,
+  ) {
+    return People(
+      id: id,
       name: name,
       relationship: relationship,
-      currentMood: _generateMood(name, relationship),
-      preferences: _generatePreferences(name, relationship),
-      personality: _generatePersonality(name, relationship),
+      description: description,
+      createdAt: createdAt,
     );
   }
 
-  String _generateMood(String name, String relationship) => "Happy";
-  List<String> _generatePreferences(String name, String relationship) => [
-    "reading",
-    "music",
-  ];
-  List<String> _generatePersonality(String name, String relationship) => [
-    "friendly",
-    "outgoing",
+  late List<People> peoples = [
+    _createGeneratedPeople(
+      1,
+      "Alice Johnson",
+      "Friend",
+      "bestie",
+      DateTime.now(),
+    ),
+    _createGeneratedPeople(
+      2,
+      "Bob Smith",
+      "Colleague",
+      "hater",
+      DateTime.now(),
+    ),
   ];
 
-  late List<Target> targets = [
-    _createGeneratedTarget("Alice Johnson", "Friend"),
-    _createGeneratedTarget("Bob Smith", "Colleague"),
-  ];
-
-  Target? selectedTarget;
+  People? selectedPeople;
 
   void _sendMessage() {
     String message = _chatController.text;
@@ -54,34 +62,40 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Save current conversation session title to history (if any messages exist),
-  // then clear current conversation and selected target.
+  // then clear current conversation and selected people.
   void _startNewChat() {
-    if (selectedTarget != null && messages.isNotEmpty) {
+    if (selectedPeople != null && messages.isNotEmpty) {
       // Create a session title (for example, "Chat with Alice - 10:30 AM")
-      String sessionTitle = "Chat with ${selectedTarget!.name}";
+      String sessionTitle = "Chat with ${selectedPeople!.name}";
       chatHistory.add(sessionTitle);
     }
     setState(() {
-      selectedTarget = null;
+      selectedPeople = null;
       messages.clear();
       _showAddUserForm = false;
     });
   }
 
-  void _selectTarget(Target target) {
+  void _selectPeople(People people) {
     setState(() {
-      selectedTarget = target;
+      selectedPeople = people;
       messages.clear();
       _showAddUserForm = false;
     });
   }
 
   // Updated to use positional parameters.
-  void _createTarget(String name, String relationship) {
-    Target newTarget = _createGeneratedTarget(name, relationship);
+  void _createPeople(String name, String relationship) {
+    People newPeople = _createGeneratedPeople(
+      5,
+      name,
+      relationship,
+      "",
+      DateTime.now(),
+    );
     setState(() {
-      targets.add(newTarget);
-      selectedTarget = newTarget;
+      peoples.add(newPeople);
+      selectedPeople = newPeople;
       messages.clear();
       _showAddUserForm = false;
     });
@@ -95,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         backgroundColor: Colors.grey[850],
         leading:
-            selectedTarget != null
+            selectedPeople != null
                 ? Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -108,16 +122,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
                 : null,
         title:
-            selectedTarget != null
+            selectedPeople != null
                 ? Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      selectedTarget!.name,
+                      selectedPeople!.name,
                       style: TextStyle(color: Colors.white),
                     ),
                     Text(
-                      "${selectedTarget!.relationship} | ${selectedTarget!.currentMood}",
+                      "${selectedPeople!.relationship}",
                       style: TextStyle(fontSize: 12, color: Colors.white),
                     ),
                   ],
@@ -140,23 +154,23 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Expanded(
             child:
-                selectedTarget == null
-                    ? TargetSelectionView(
-                      targets: targets,
+                selectedPeople == null
+                    ? PeopleSelectionView(
+                      peoples: peoples,
                       showAddUserForm: _showAddUserForm,
-                      onTargetSelected: _selectTarget,
+                      onPeopleSelected: _selectPeople,
                       onShowAddForm: () {
                         setState(() {
                           _showAddUserForm = true;
                         });
                       },
-                      onCreateTarget: _createTarget,
+                      onCreatePeople: _createPeople,
                     )
                     : ChatConversationView(
                       messages: messages,
                       chatController: _chatController,
                       onSendMessage: _sendMessage,
-                      target: selectedTarget!,
+                      people: selectedPeople!,
                     ),
           ),
         ],
