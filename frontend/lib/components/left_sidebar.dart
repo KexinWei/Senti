@@ -18,7 +18,7 @@ class LeftSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 250,
-      color: Colors.grey[200],
+      color: Colors.grey[850],
       child: Column(
         children: [
           Padding(

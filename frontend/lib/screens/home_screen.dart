@@ -90,15 +90,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[900],
       appBar: AppBar(
         centerTitle: true,
+        backgroundColor: Colors.grey[850],
         leading:
             selectedTarget != null
                 ? Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.home),
+                      icon: Icon(Icons.home, color: Colors.white),
                       tooltip: "Home",
                       onPressed: _startNewChat,
                     ),
@@ -110,14 +112,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(selectedTarget!.name),
+                    Text(
+                      selectedTarget!.name,
+                      style: TextStyle(color: Colors.white),
+                    ),
                     Text(
                       "${selectedTarget!.relationship} | ${selectedTarget!.currentMood}",
-                      style: TextStyle(fontSize: 12),
+                      style: TextStyle(fontSize: 12, color: Colors.white),
                     ),
                   ],
                 )
-                : Text("Chat App"),
+                : Text("Senti", style: TextStyle(color: Colors.white)),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
@@ -125,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 CircleAvatar(child: Icon(Icons.person)),
                 SizedBox(width: 8),
-                Text("User Name"),
+                Text("Click", style: TextStyle(color: Colors.white)),
               ],
             ),
           ),
