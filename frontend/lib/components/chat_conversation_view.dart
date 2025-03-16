@@ -126,6 +126,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   //   widget.chatController.clear();
   // }
 
+  @override
   void dispose() {
     widget.chatController.removeListener(_onTextChanged);
     super.dispose();
@@ -258,6 +259,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                           style: TextStyle(color: Colors.white),
                           decoration: InputDecoration(
                             hintText: "Type your message...",
+                            hintStyle: TextStyle(color: Colors.grey),
                             border: OutlineInputBorder(),
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(
