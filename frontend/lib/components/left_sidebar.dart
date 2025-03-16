@@ -1,54 +1,43 @@
+// 1. Update imports at the top to import the new ChatSession model.
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/people.dart';
+import '../models/chat_session.dart'; // <-- Added import for the new session model
 
 final String defaultDatetimeFormat = 'yyyy-MM-dd HH:mm:ss';
 
-/// A simple class to parse session strings.
-class SessionWithDate {
-  final String fullTitle;  // e.g., "Chat with Alice ## 2023-03-15 14:20"
-  final String mainTitle;  // e.g., "Chat with Alice"
-  final DateTime date;     // Parsed date
+/// Remove the old SessionWithDate class since ChatSession is now defined in the models folder.
+// You can delete the following class if no longer needed:
+//
+// class SessionWithDate {
+//   final String fullTitle;
+//   final String mainTitle;
+//   final DateTime date;
+//
+//   SessionWithDate({
+//     required this.fullTitle,
+//     required this.mainTitle,
+//     required this.date,
+//   });
+// }
 
-  SessionWithDate({
-    required this.fullTitle,
-    required this.mainTitle,
-    required this.date,
-  });
-}
-
+// 1. Update the LeftSidebar widget definition to accept the new parameter.
 class LeftSidebar extends StatelessWidget {
-
-  final List<String> chatHistory;
+  final List<ChatSession> chatHistory;
   final People currentPeople;
   final Function(People) onNewChat;
   final Function(String) onSessionSelected;
+  final String? currentSessionId; // New parameter
 
   const LeftSidebar({
     required this.chatHistory,
     required this.currentPeople,
     required this.onNewChat,
     required this.onSessionSelected,
+    this.currentSessionId, // Optional parameter to indicate selected session
   });
 
-  /// Parse a session string (e.g. "Chat with Alice ## 2023-03-15 14:20")
-  SessionWithDate _parseSessionTitle(String fullTitle) {
-    final splitted = fullTitle.split('##');
-    if (splitted.length == 2) {
-      final mainPart = splitted[0].trim();
-      final dateString = splitted[1].trim();
-      try {
-        final date = DateFormat(defaultDatetimeFormat).parse(dateString);
-        return SessionWithDate(fullTitle: fullTitle, mainTitle: mainPart, date: date);
-      } catch (e) {
-        return SessionWithDate(fullTitle: fullTitle, mainTitle: mainPart, date: DateTime.now());
-      }
-    } else {
-      return SessionWithDate(fullTitle: fullTitle, mainTitle: fullTitle, date: DateTime.now());
-    }
-  }
-
-  /// Determine the section name based on the date.
+  /// Determine the section name based on the last message time.
   String _getSectionName(DateTime date) {
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
@@ -68,13 +57,13 @@ class LeftSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Parse session strings.
-    final sessionList = chatHistory.map((title) => _parseSessionTitle(title)).toList();
+    // 3. Use the provided chatHistory directly as a list of ChatSession objects.
+    final sessionList = chatHistory;
 
     // Group sessions by section.
-    Map<String, List<SessionWithDate>> grouped = {};
+    Map<String, List<ChatSession>> grouped = {};
     for (var s in sessionList) {
-      final sectionName = _getSectionName(s.date);
+      final sectionName = _getSectionName(s.lastMessageTime);
       grouped.putIfAbsent(sectionName, () => []).add(s);
     }
 
@@ -89,49 +78,78 @@ class LeftSidebar extends StatelessWidget {
     }
 
     return Container(
+      margin: EdgeInsets.only(top: 16.0),
       width: 250,
-      color: Colors.grey[850],
-      child: Column(
-        children: [
-          // New Chat button.
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              child: Text("New Chat"),
-              onPressed: () => onNewChat(currentPeople),
+      // Instead of using withOpacity, construct a color directly (if needed):
+      color: Color.fromRGBO(66, 66, 66, 0.2),
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title for the sidebar.
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Chat History',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
             ),
-          ),
-          Divider(),
-          Expanded(
-            child: ListView.builder(
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
-                if (item is String) {
-                  // Section header.
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
-                    child: Text(
-                      item,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[700],
+            Expanded(
+              child: ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  if (item is String) {
+                    // Section header.
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 4.0,
+                        horizontal: 16.0,
                       ),
-                    ),
-                  );
-                } else if (item is SessionWithDate) {
-                  return ListTile(
-                    title: Text(item.mainTitle),
-                    subtitle: Text(DateFormat(defaultDatetimeFormat).format(item.date)),
-                    onTap: () => onSessionSelected(item.fullTitle),
-                  );
-                } else {
-                  return SizedBox.shrink();
-                }
-              },
+                      child: Text(
+                        item,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    );
+                  } else if (item is ChatSession) {
+                    bool isSelected =
+                        (currentSessionId != null &&
+                            item.sessionId == currentSessionId);
+                    return ListTile(
+                      title: Text(
+                        item.title,
+                        style: TextStyle(
+                          color: isSelected ? Colors.blue : Colors.white,
+                        ),
+                      ),
+                      subtitle: Text(
+                        DateFormat(
+                          defaultDatetimeFormat,
+                        ).format(item.lastMessageTime),
+                        style: TextStyle(
+                          color:
+                              isSelected
+                                  ? Colors.blue.shade200
+                                  : Colors.white70,
+                        ),
+                      ),
+                      onTap: () => onSessionSelected(item.sessionId),
+                    );
+                  } else {
+                    return SizedBox.shrink();
+                  }
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
