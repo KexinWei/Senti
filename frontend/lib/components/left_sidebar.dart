@@ -27,12 +27,14 @@ class LeftSidebar extends StatefulWidget {
   final People currentPeople;
   final Function(ChatSession) onSessionSelected;
   final Function() onNewChat;
+  final ChatSession currentSession; // 添加当前会话参数
 
   const LeftSidebar({
     Key? key,
     required this.currentPeople,
     required this.onSessionSelected,
     required this.onNewChat,
+    required this.currentSession, // 添加到构造函数
   }) : super(key: key);
 
   @override
@@ -136,7 +138,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
           ElevatedButton.icon(
             onPressed: _createNewSession,
             icon: Icon(Icons.add),
-            label: Text('New Consultation'),
+            label: Text('New Session'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue[700],
               minimumSize: Size(double.infinity, 40),
@@ -157,7 +159,10 @@ class _LeftSidebarState extends State<LeftSidebar> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Error loading sessions', style: TextStyle(color: Colors.red)),
+            Text(
+              'Failed to load sessions',
+              style: TextStyle(color: Colors.red),
+            ),
             SizedBox(height: 8),
             ElevatedButton(onPressed: _loadSessions, child: Text('Retry')),
           ],
@@ -168,7 +173,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
     if (_sessions.isEmpty) {
       return Center(
         child: Text(
-          'No sessions yet.\nStart a new consultation!',
+          'No sessions yet\nStart a new conversation!',
           style: TextStyle(color: Colors.white70),
           textAlign: TextAlign.center,
         ),
@@ -179,18 +184,30 @@ class _LeftSidebarState extends State<LeftSidebar> {
       itemCount: _sessions.length,
       itemBuilder: (context, index) {
         final session = _sessions[index];
+        final isSelected = session.id == widget.currentSession.id;
+
         return ListTile(
           title: Text(
             session.title,
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
             _formatDate(session.createdAt),
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(
+              color: isSelected ? Colors.blue[300] : Colors.white70,
+            ),
           ),
           onTap: () => widget.onSessionSelected(session),
+          tileColor: isSelected ? Colors.blue.withOpacity(0.2) : null,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          selected: isSelected,
+          selectedTileColor: Colors.blue.withOpacity(0.2),
         );
       },
     );

@@ -26,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadPeoples();
   }
 
-  // 加载用户列表
+  // Load user list
   Future<void> _loadPeoples() async {
     try {
       setState(() {
@@ -44,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _error = e.toString();
         _isLoading = false;
       });
-      _showError('加载用户列表失败：${e.toString()}');
+      _showError('Failed to load user list: ${e.toString()}');
     }
   }
 
@@ -68,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 创建新用户
+  // Create new user
   Future<void> _createPeople(String name, String relationship) async {
     try {
       setState(() {
@@ -79,16 +79,16 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _peoples.add(newPeople);
       });
-      _showSuccess('创建用户成功！');
+      _showSuccess('User created successfully!');
     } catch (e) {
       setState(() {
         _error = e.toString();
       });
-      _showError('创建用户失败：${e.toString()}');
+      _showError('Failed to create user: ${e.toString()}');
     }
   }
 
-  // 选择用户
+  // Select user
   void _selectPeople(People people) async {
     try {
       final session = await _apiService.createSession(people.id!);
@@ -97,18 +97,18 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentSession = session;
       });
     } catch (e) {
-      _showError('创建会话失败：${e.toString()}');
+      _showError('Failed to create session: ${e.toString()}');
     }
   }
 
-  // 选择会话
+  // Select session
   void _selectSession(ChatSession session) {
     setState(() {
       _currentSession = session;
     });
   }
 
-  // 开始新会话
+  // Start new chat
   Future<void> _startNewChat() async {
     if (_selectedPeople == null) return;
     try {
@@ -117,29 +117,29 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentSession = session;
       });
     } catch (e) {
-      _showError('创建新会话失败：${e.toString()}');
+      _showError('Failed to create new session: ${e.toString()}');
     }
   }
 
-  // 返回选择人界面
+  // Return to people selection
   Future<void> _backToPeopleSelection() async {
     if (_currentSession != null) {
       try {
-        // 检查当前会话是否为空
+        // Check if current session is empty
         final messageCount = await _apiService.getSessionMessageCount(
           _currentSession!.id,
         );
         if (messageCount == 0) {
-          // 如果会话为空，删除它
+          // Delete if session is empty
           await _apiService.deleteSession(_currentSession!.id);
-          print('成功删除空会话: ${_currentSession!.id}');
+          print('Successfully deleted empty session: ${_currentSession!.id}');
         }
       } catch (e) {
-        print('删除空会话失败: ${e.toString()}');
+        print('Failed to delete empty session: ${e.toString()}');
       }
     }
 
-    // 确保在所有操作完成后再更新状态
+    // Update state after all operations are complete
     setState(() {
       _selectedPeople = null;
       _currentSession = null;
@@ -158,10 +158,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 leading: IconButton(
                   icon: Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: _backToPeopleSelection,
-                  tooltip: '返回选择联系人',
+                  tooltip: 'Back to Contacts',
                 ),
                 title: Text(
-                  '与 ${_selectedPeople!.name} 的对话',
+                  'Chat with ${_selectedPeople!.name}',
                   style: TextStyle(color: Colors.white),
                 ),
               )
@@ -175,6 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 currentPeople: _selectedPeople!,
                 onSessionSelected: _selectSession,
                 onNewChat: _startNewChat,
+                currentSession: _currentSession!,
               ),
             ),
           Expanded(
@@ -199,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             CircularProgressIndicator(color: Colors.white),
             SizedBox(height: 16),
-            Text('加载中...', style: TextStyle(color: Colors.white)),
+            Text('Loading...', style: TextStyle(color: Colors.white)),
           ],
         ),
       );
@@ -212,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(Icons.error_outline, color: Colors.red, size: 48),
             SizedBox(height: 16),
-            Text('出错了', style: TextStyle(color: Colors.red, fontSize: 18)),
+            Text('Error', style: TextStyle(color: Colors.red, fontSize: 18)),
             SizedBox(height: 8),
             Text(
               _error!,
@@ -223,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ElevatedButton.icon(
               onPressed: _loadPeoples,
               icon: Icon(Icons.refresh),
-              label: Text('重试'),
+              label: Text('Retry'),
             ),
           ],
         ),

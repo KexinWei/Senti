@@ -76,21 +76,16 @@ router.post("/", async (req, res) => {
       });
 
       if (!sessionInfo) {
-        // 检查会话是否存在
-        const sessionExists = await new Promise((resolve) => {
-          db.get(
-            "SELECT id FROM Sessions WHERE id = ?",
-            [session_id],
-            (err, row) => {
-              resolve(row != null);
-            }
-          );
-        });
+        // Check if session exists
+        const sessionExists = await db.get(
+          "SELECT id FROM Sessions WHERE id = ?",
+          [session_id]
+        );
 
-        if (sessionExists) {
-          throw new Error("会话关联的用户信息不存在，请重新选择用户");
+        if (!sessionExists) {
+          throw new Error("Session not found");
         } else {
-          throw new Error("会话不存在，请重新开始对话");
+          throw new Error("User information not found");
         }
       }
     } catch (err) {
