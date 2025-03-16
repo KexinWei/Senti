@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import '../models/target.dart';
+import '../models/people.dart';
 
-class TargetSelectionView extends StatelessWidget {
-  final List<Target> targets;
+class PeopleSelectionView extends StatelessWidget {
+  final List<People> peoples;
   final bool showAddUserForm;
-  final Function(Target) onTargetSelected;
+  final Function(People) onPeopleSelected;
   final Function() onShowAddForm;
-  final Function(String name, String relationship) onCreateTarget;
+  final Function(String name, String relationship) onCreatePeople;
 
-  TargetSelectionView({
-    required this.targets,
+  PeopleSelectionView({
+    required this.peoples,
     required this.showAddUserForm,
-    required this.onTargetSelected,
+    required this.onPeopleSelected,
     required this.onShowAddForm,
-    required this.onCreateTarget,
+    required this.onCreatePeople,
   });
 
   // Helper to get initials.
@@ -36,7 +36,7 @@ class TargetSelectionView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Select an Existing Target",
+              "Select an Existing People",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -47,7 +47,7 @@ class TargetSelectionView extends StatelessWidget {
             GridView.builder(
               shrinkWrap: true,
               physics: NeverScrollableScrollPhysics(),
-              itemCount: targets.length + 1,
+              itemCount: peoples.length + 1,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 mainAxisSpacing: 8,
@@ -55,11 +55,11 @@ class TargetSelectionView extends StatelessWidget {
                 childAspectRatio: 0.8,
               ),
               itemBuilder: (context, index) {
-                if (index < targets.length) {
-                  final target = targets[index];
-                  final initials = _getInitials(target.name);
+                if (index < peoples.length) {
+                  final people = peoples[index];
+                  final initials = _getInitials(people.name);
                   return GestureDetector(
-                    onTap: () => onTargetSelected(target),
+                    onTap: () => onPeopleSelected(people),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
@@ -69,7 +69,7 @@ class TargetSelectionView extends StatelessWidget {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          target.name,
+                          people.name,
                           style: TextStyle(fontSize: 12),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -77,7 +77,7 @@ class TargetSelectionView extends StatelessWidget {
                     ),
                   );
                 } else {
-                  // "Create New Target" cell.
+                  // "Create New People" cell.
                   return GestureDetector(
                     onTap: onShowAddForm,
                     child: Column(
@@ -101,7 +101,7 @@ class TargetSelectionView extends StatelessWidget {
                 children: [
                   SizedBox(height: 8),
                   Text(
-                    "Create a New Target",
+                    "Create a New People",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -110,7 +110,7 @@ class TargetSelectionView extends StatelessWidget {
                   ),
                   TextField(
                     controller: nameController,
-                    decoration: InputDecoration(labelText: "Target Name"),
+                    decoration: InputDecoration(labelText: "People Name"),
                   ),
                   TextField(
                     controller: relationshipController,
@@ -121,13 +121,13 @@ class TargetSelectionView extends StatelessWidget {
                     onPressed: () {
                       if (nameController.text.isNotEmpty &&
                           relationshipController.text.isNotEmpty) {
-                        onCreateTarget(
+                        onCreatePeople(
                           nameController.text,
                           relationshipController.text,
                         );
                       }
                     },
-                    child: Text("Create Target"),
+                    child: Text("Create People"),
                   ),
                 ],
               ),

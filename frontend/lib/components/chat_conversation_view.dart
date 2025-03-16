@@ -1,34 +1,18 @@
 import 'package:flutter/material.dart';
-import '../models/target.dart';
+import '../models/people.dart';
 import '../components/left_sidebar.dart';
-
-// A helper function to map mood to a color.
-Color getMoodColor(String mood) {
-  switch (mood.toLowerCase()) {
-    case 'happy':
-      return Colors.orange;
-    case 'sad':
-      return Colors.blue;
-    case 'angry':
-      return Colors.red;
-    case 'calm':
-      return Colors.green;
-    default:
-      return Colors.grey;
-  }
-}
 
 class ChatConversationView extends StatefulWidget {
   final List<String> messages;
   final TextEditingController chatController;
   final VoidCallback onSendMessage;
-  final Target target;
+  final People people;
 
   ChatConversationView({
     required this.messages,
     required this.chatController,
     required this.onSendMessage,
-    required this.target,
+    required this.people,
   });
 
   @override
@@ -50,10 +34,10 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   }
 
   // Save current conversation session title to history (if any messages exist),
-  // then clear current conversation and selected target.
-  void _startNewChat(Target target) {
+  // then clear current conversation and selected people.
+  void _startNewChat(People people) {
     if (widget.messages.isNotEmpty) {
-      String sessionTitle = "Chat with ${target.name}";
+      String sessionTitle = "Chat with ${people.name}";
       chatHistory.add(sessionTitle);
     }
     setState(() {
@@ -86,15 +70,14 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   @override
   @override
   Widget build(BuildContext context) {
-    // Determine the mood color from the target's current mood.
-    final moodColor = getMoodColor(widget.target.currentMood);
+    // Determine the mood color from the people's current mood.
 
     return Row(
       children: [
         if (_isHistoryVisible)
           LeftSidebar(
             chatHistory: chatHistory,
-            currentTarget: widget.target,
+            currentPeople: widget.people,
             onNewChat: _startNewChat,
             onSessionSelected: (sessionTitle) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -170,10 +153,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                           hintText: "Type your message...",
                           border: OutlineInputBorder(),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: moodColor,
-                              width: 2.0,
-                            ),
+                            borderSide: BorderSide(width: 2.0),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderSide: BorderSide(

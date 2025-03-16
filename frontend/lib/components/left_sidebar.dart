@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../models/target.dart';
+import '../models/people.dart';
 
 class LeftSidebar extends StatelessWidget {
   final List<String> chatHistory;
-  final Target currentTarget;
-  final Function(Target) onNewChat;
+  final People currentPeople;
+  final Function(People) onNewChat;
   final Function(String) onSessionSelected;
 
   const LeftSidebar({
     required this.chatHistory,
-    required this.currentTarget,
+    required this.currentPeople,
     required this.onNewChat,
     required this.onSessionSelected,
   });
@@ -25,7 +25,7 @@ class LeftSidebar extends StatelessWidget {
             padding: const EdgeInsets.all(8.0),
             child: ElevatedButton(
               child: Text("New Chat"),
-              onPressed: () => onNewChat(currentTarget),
+              onPressed: () => onNewChat(currentPeople),
             ),
           ),
           Divider(),
