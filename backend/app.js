@@ -18,11 +18,13 @@ app.use(bodyParser.urlencoded({ extended: false }));
 const peopleRoutes = require('./routes/people');
 const sessionsRoutes = require('./routes/sessions');
 const messagesRoutes = require('./routes/messages');
+const analyzeRoutes = require('./routes/analyze');
 
 
 app.use('/api/people', peopleRoutes);
 app.use('/api/sessions', sessionsRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/analyze', analyzeRoutes);
 
 
 // 404 handler

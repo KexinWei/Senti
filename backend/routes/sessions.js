@@ -1,25 +1,7 @@
+// server/routes/sessions.js
 const express = require('express');
 const router = express.Router();
 const { db } = require('../database/initDB');
-
-// Get all sessions (optionally filter by people_id)
-router.get('/', (req, res) => {
-  const { people_id } = req.query;
-  let sql = 'SELECT * FROM Sessions';
-  let params = [];
-  if (people_id) {
-    sql += ' WHERE people_id = ?';
-    params.push(people_id);
-  }
-  sql += ' ORDER BY created_at DESC';
-  db.all(sql, params, (err, rows) => {
-    if (err) {
-      console.error('Error fetching sessions:', err.message);
-      return res.status(500).json({ error: err.message });
-    }
-    res.json({ sessions: rows });
-  });
-});
 
 // Get a specific session by id
 router.get('/:id', (req, res) => {

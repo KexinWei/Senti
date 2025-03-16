@@ -40,13 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
       "bestie",
       DateTime.now(),
     ),
-    _createGeneratedPeople(
-      2,
-      "Bob Smith",
-      "Colleague",
-      "hater",
-      DateTime.now(),
-    ),
+    _createGeneratedPeople(2, "Bob Smith", "Boss", "hater", DateTime.now()),
   ];
 
   People? selectedPeople;
@@ -104,76 +98,97 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         centerTitle: true,
-        backgroundColor: Colors.grey[850],
         leading:
             selectedPeople != null
-                ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.home, color: Colors.white),
-                      tooltip: "Home",
-                      onPressed: _startNewChat,
-                    ),
-                  ],
+                ? Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.home, size: 40, color: Colors.white),
+                        tooltip: "Home",
+                        onPressed: _startNewChat,
+                      ),
+                    ],
+                  ),
                 )
                 : null,
-        title:
-            selectedPeople != null
-                ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      selectedPeople!.name,
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    Text(
-                      "${selectedPeople!.relationship}",
-                      style: TextStyle(fontSize: 12, color: Colors.white),
-                    ),
-                  ],
-                )
-                : Text("Senti", style: TextStyle(color: Colors.white)),
+        title: Padding(
+          padding: const EdgeInsets.only(top: 16.0),
+          child:
+              selectedPeople != null
+                  ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        selectedPeople!.name,
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      Text(
+                        selectedPeople!.relationship,
+                        style: TextStyle(fontSize: 12, color: Colors.white),
+                      ),
+                    ],
+                  )
+                  : Text("Senti", style: TextStyle(color: Colors.white)),
+        ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 8.0),
+            padding: const EdgeInsets.only(top: 16.0, right: 8.0),
             child: Row(
               children: [
-                CircleAvatar(child: Icon(Icons.person)),
+                CircleAvatar(
+                  backgroundColor: Colors.blue,
+                  child: Icon(Icons.person, color: Colors.white),
+                ),
                 SizedBox(width: 8),
-                Text("Click", style: TextStyle(color: Colors.white)),
+                Text("Team Click", style: TextStyle(color: Colors.white)),
               ],
             ),
           ),
         ],
       ),
-      body: Row(
-        children: [
-          Expanded(
-            child:
-                selectedPeople == null
-                    ? PeopleSelectionView(
-                      peoples: peoples,
-                      showAddUserForm: _showAddUserForm,
-                      onPeopleSelected: _selectPeople,
-                      onShowAddForm: () {
-                        setState(() {
-                          _showAddUserForm = true;
-                        });
-                      },
-                      onCreatePeople: _createPeople,
-                    )
-                    : ChatConversationView(
-                      messages: messages,
-                      chatController: _chatController,
-                      onSendMessage: _sendMessage,
-                      people: selectedPeople!,
-                    ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF0A1321), Color(0xFF1B3157)],
           ),
-        ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child:
+                  selectedPeople == null
+                      ? PeopleSelectionView(
+                        peoples: peoples,
+                        showAddUserForm: _showAddUserForm,
+                        onPeopleSelected: _selectPeople,
+                        onShowAddForm: () {
+                          setState(() {
+                            _showAddUserForm = true;
+                          });
+                        },
+                        onCreatePeople: _createPeople,
+                      )
+                      : ChatConversationView(
+                        messages: messages,
+                        chatController: _chatController,
+                        onSendMessage: _sendMessage,
+                        people: selectedPeople!,
+                      ),
+            ),
+          ],
+        ),
       ),
     );
   }
