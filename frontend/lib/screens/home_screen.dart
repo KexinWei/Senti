@@ -95,10 +95,15 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         leading:
             selectedTarget != null
-                ? IconButton(
-                  icon: Icon(Icons.home),
-                  tooltip: "Home",
-                  onPressed: _startNewChat,
+                ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.home),
+                      tooltip: "Home",
+                      onPressed: _startNewChat,
+                    ),
+                  ],
                 )
                 : null,
         title:
