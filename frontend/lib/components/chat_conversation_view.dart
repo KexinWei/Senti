@@ -1,35 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // For date formatting
-import '../models/target.dart';
+import '../models/people.dart';
 import '../components/left_sidebar.dart';
-
-/// A helper function to map mood to a color.
-Color getMoodColor(String mood) {
-  switch (mood.toLowerCase()) {
-    case 'happy':
-      return Colors.orange;
-    case 'sad':
-      return Colors.blue;
-    case 'angry':
-      return Colors.red;
-    case 'calm':
-      return Colors.green;
-    default:
-      return Colors.grey;
-  }
-}
 
 class ChatConversationView extends StatefulWidget {
   final List<String> messages; // Initial messages from HomeScreen (usually empty)
   final TextEditingController chatController;
   final VoidCallback onSendMessage;
-  final Target target;
+  final People people;
 
   ChatConversationView({
     required this.messages,
     required this.chatController,
     required this.onSendMessage,
-    required this.target,
+    required this.people,
   });
 
   @override
@@ -37,8 +21,7 @@ class ChatConversationView extends StatefulWidget {
 }
 
 class _ChatConversationViewState extends State<ChatConversationView> {
-  bool _isHistoryVisible = true;
-
+  bool _isHistoryVisible = false;
   /// Map to store past sessions.
   /// Key: session title (e.g. "Chat with Alice ## 2023-03-15 14:20")
   /// Value: list of messages for that session.
@@ -52,22 +35,24 @@ class _ChatConversationViewState extends State<ChatConversationView> {
     super.initState();
     // Initialize current messages with what is passed from HomeScreen.
     _currentMessages = List.from(widget.messages);
+    widget.chatController.addListener(_onTextChanged);
+  }
+  
+  void _onTextChanged() {
+    setState(() {});
   }
 
   /// When the user decides to finish the current chat and start a new one,
   /// save the current session (if not empty) into the session history.
-  void _startNewChat(Target target) {
+  void _startNewChat(People people) {
     if (_currentMessages.isNotEmpty) {
       // Create a session title including the current date/time.
       final now = DateTime.now();
       final formattedDate = DateFormat(defaultDatetimeFormat).format(now);
       String sessionTitle = "Chat with ${target.name} ## $formattedDate";
       _sessionHistory[sessionTitle] = List.from(_currentMessages);
-    }
-    // Clear current messages for a new conversation.
-    setState(() {
       _currentMessages.clear();
-    });
+    }
   }
 
   /// When a message is sent, append it (and, for demo, a dummy AI reply) to current messages.
@@ -91,12 +76,19 @@ class _ChatConversationViewState extends State<ChatConversationView> {
       _isHistoryVisible = !_isHistoryVisible;
     });
   }
-
-  /// Load a previously saved session.
+  
   void _loadSession(String sessionTitle) {
-    setState(() {
-      _currentMessages = List.from(_sessionHistory[sessionTitle] ?? []);
-    });
+  setState(() {
+    _currentMessages = List.from(_sessionHistory[sessionTitle] ?? []);
+  });
+  }
+
+  void _handleSendMessage() {
+    String message = widget.chatController.text.trim();
+    if (message.isEmpty) return;
+    widget.onSendMessage();
+    // Optionally, clear the text field after sending
+    widget.chatController.clear();
   }
 
   /// Get a list of session titles for the left sidebar.
@@ -104,19 +96,23 @@ class _ChatConversationViewState extends State<ChatConversationView> {
     return _sessionHistory.keys.toList();
   }
 
+  void dispose() {
+    widget.chatController.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final moodColor = getMoodColor(widget.target.currentMood);
-    // Parse session strings.
     return Row(
       children: [
         if (_isHistoryVisible)
-          LeftSidebar(
+          SafeArea(
+            child:  LeftSidebar(
             // Pass the list of session titles.
             chatHistory: _chatHistoryTitles,
-            currentTarget: widget.target,
+            currentPeople: widget.people,
             // When "New Chat" is pressed in the sidebar, finish current session.
-            onNewChat: (target) => _startNewChat(target),
+            onNewChat: (people) => _startNewChat(people),
             // When a session is selected from the sidebar, load its messages.
             onSessionSelected: (sessionTitle) {
               _loadSession(sessionTitle);
@@ -130,89 +126,145 @@ class _ChatConversationViewState extends State<ChatConversationView> {
               );
             },
           ),
+        ),
         Expanded(
-          child: Column(
-            children: [
-              // Top row with a toggle button and target name.
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      _isHistoryVisible
-                          ? Icons.keyboard_arrow_left
-                          : Icons.keyboard_arrow_right,
-                    ),
-                    tooltip: _isHistoryVisible ? 'Hide History' : 'Show History',
-                    onPressed: _toggleHistory,
-                  ),
-                  Text(widget.target.name),
-                ],
-              ),
-              // Chat messages list (shows current session messages)
-              Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.all(8),
-                  itemCount: _currentMessages.length,
-                  itemBuilder: (context, index) {
-                    bool isUser = !_currentMessages[index].startsWith("AI:");
-                    return Container(
-                      margin: EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        mainAxisAlignment: isUser
-                            ? MainAxisAlignment.end
-                            : MainAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.only(top: kToolbarHeight + 16.0),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left column with toggle and new chat buttons
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            padding: EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isUser ? Colors.green[100] : Colors.blue[100],
-                              borderRadius: BorderRadius.circular(8),
+                          IconButton(
+                            icon: Icon(
+                              _isHistoryVisible
+                                  ? Icons.keyboard_arrow_left
+                                  : Icons.keyboard_arrow_right,
+                              size: 32,
+                              color: Colors.white,
                             ),
-                            child: Text(_currentMessages[index]),
+                            tooltip:
+                                _isHistoryVisible
+                                    ? 'Hide History'
+                                    : 'Show History',
+                            onPressed: _toggleHistory,
+                          ),
+                          SizedBox(height: 8),
+                          IconButton(
+                            icon: Icon(
+                              Icons.add,
+                              size: 32,
+                              color: Colors.white,
+                            ),
+                            tooltip: 'New Chat',
+                            onPressed: () => _startNewChat(widget.people),
                           ),
                         ],
                       ),
-                    );
-                  },
-                ),
-              ),
-              // Input area for sending new messages.
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: widget.chatController,
-                        textInputAction: TextInputAction.send,
-                        decoration: InputDecoration(
-                          hintText: "Type your message...",
-                          border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: moodColor,
-                              width: 2.0,
-                            ),
+                      // Right side with text bubbles
+                      Expanded(
+                        child: ListView.builder(
+                          padding: EdgeInsets.only(
+                            top: 0,
+                            left: 8,
+                            right: 8,
+                            bottom: 8,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.grey,
-                              width: 1.0,
-                            ),
-                          ),
+                          itemCount: widget.messages.length,
+                          itemBuilder: (context, index) {
+                            bool isUser =
+                                !widget.messages[index].startsWith("AI:");
+                            return Container(
+                              margin: EdgeInsets.symmetric(
+                                vertical: 4,
+                                horizontal: 16,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    isUser
+                                        ? MainAxisAlignment.end
+                                        : MainAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          isUser ? Colors.white : Colors.blue,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        maxWidth:
+                                            MediaQuery.of(context).size.width *
+                                            0.7,
+                                      ),
+                                      child: Text(widget.messages[index]),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
-                        onSubmitted: (value) => _handleSendMessage(),
                       ),
-                    ),
-                    SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(Icons.send),
-                      onPressed: _handleSendMessage,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                // Chat input with styled text field using moodColor
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: widget.chatController,
+                          textInputAction: TextInputAction.send,
+                          keyboardType: TextInputType.multiline,
+                          minLines: 1,
+                          maxLines: 5,
+                          style: TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: "Type your message...",
+                            border: OutlineInputBorder(),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                width: 2.0,
+                                color: Colors.white,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.grey,
+                                width: 1.0,
+                              ),
+                            ),
+                          ),
+                          onSubmitted: (value) {
+                            _handleSendMessage();
+                          },
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      IconButton(
+                        icon:
+                            widget.chatController.text.isNotEmpty
+                                ? Icon(Icons.send, color: Colors.white)
+                                : Icon(Icons.send, color: Colors.grey),
+                        onPressed:
+                            widget.chatController.text.isNotEmpty
+                                ? _handleSendMessage
+                                : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],

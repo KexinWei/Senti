@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/target.dart';
+import '../models/people.dart';
 
 final String defaultDatetimeFormat = 'yyyy-MM-dd HH:mm:ss';
 
@@ -18,14 +18,15 @@ class SessionWithDate {
 }
 
 class LeftSidebar extends StatelessWidget {
-  final List<String> chatHistory; // List of session titles
-  final Target currentTarget;
-  final Function(Target) onNewChat;
+
+  final List<String> chatHistory;
+  final People currentPeople;
+  final Function(People) onNewChat;
   final Function(String) onSessionSelected;
 
   const LeftSidebar({
     required this.chatHistory,
-    required this.currentTarget,
+    required this.currentPeople,
     required this.onNewChat,
     required this.onSessionSelected,
   });
@@ -89,7 +90,7 @@ class LeftSidebar extends StatelessWidget {
 
     return Container(
       width: 250,
-      color: Colors.grey[200],
+      color: Colors.grey[850],
       child: Column(
         children: [
           // New Chat button.
@@ -97,7 +98,7 @@ class LeftSidebar extends StatelessWidget {
             padding: const EdgeInsets.all(8.0),
             child: ElevatedButton(
               child: Text("New Chat"),
-              onPressed: () => onNewChat(currentTarget),
+              onPressed: () => onNewChat(currentPeople),
             ),
           ),
           Divider(),
