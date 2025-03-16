@@ -39,6 +39,16 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   bool _isHistoryVisible = true;
   List<String> chatHistory = [];
 
+  @override
+  void initState() {
+    super.initState();
+    widget.chatController.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    setState(() {});
+  }
+
   // Save current conversation session title to history (if any messages exist),
   // then clear current conversation and selected target.
   void _startNewChat(Target target) {
@@ -58,6 +68,9 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   }
 
   void _handleSendMessage() {
+    String message = widget.chatController.text.trim();
+    if (message.isEmpty) return;
+
     widget.onSendMessage();
     setState(() {
       widget.messages.add("AI: This is a dummy reply");
@@ -65,6 +78,12 @@ class _ChatConversationViewState extends State<ChatConversationView> {
     widget.chatController.clear();
   }
 
+  void dispose() {
+    widget.chatController.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
+  @override
   @override
   Widget build(BuildContext context) {
     // Determine the mood color from the target's current mood.
@@ -79,7 +98,12 @@ class _ChatConversationViewState extends State<ChatConversationView> {
             onNewChat: _startNewChat,
             onSessionSelected: (sessionTitle) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Selected session: $sessionTitle")),
+                SnackBar(
+                  content: Text(
+                    "Selected session: $sessionTitle",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
               );
             },
           ),
@@ -94,6 +118,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                       _isHistoryVisible
                           ? Icons.keyboard_arrow_left
                           : Icons.keyboard_arrow_right,
+                      color: Colors.white,
                     ),
                     tooltip:
                         _isHistoryVisible ? 'Hide History' : 'Show History',
@@ -140,6 +165,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                       child: TextField(
                         controller: widget.chatController,
                         textInputAction: TextInputAction.send,
+                        style: TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: "Type your message...",
                           border: OutlineInputBorder(),
@@ -163,8 +189,14 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                     ),
                     SizedBox(width: 8),
                     IconButton(
-                      icon: Icon(Icons.send),
-                      onPressed: _handleSendMessage,
+                      icon:
+                          widget.chatController.text.isNotEmpty
+                              ? Icon(Icons.send, color: Colors.white)
+                              : Icon(Icons.send, color: Colors.grey),
+                      onPressed:
+                          widget.chatController.text.isNotEmpty
+                              ? _handleSendMessage
+                              : null,
                     ),
                   ],
                 ),

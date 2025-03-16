@@ -37,7 +37,11 @@ class TargetSelectionView extends StatelessWidget {
           children: [
             Text(
               "Select an Existing Target",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             SizedBox(height: 8),
             GridView.builder(
@@ -98,7 +102,11 @@ class TargetSelectionView extends StatelessWidget {
                   SizedBox(height: 8),
                   Text(
                     "Create a New Target",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   TextField(
                     controller: nameController,
@@ -119,7 +127,7 @@ class TargetSelectionView extends StatelessWidget {
                         );
                       }
                     },
-                    child: Text("Create & Select Target"),
+                    child: Text("Create Target"),
                   ),
                 ],
               ),
