@@ -20,7 +20,7 @@ class ChatConversationView extends StatefulWidget {
 }
 
 class _ChatConversationViewState extends State<ChatConversationView> {
-  bool _isHistoryVisible = true;
+  bool _isHistoryVisible = false;
   List<String> chatHistory = [];
 
   @override
@@ -68,120 +68,167 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     // Determine the mood color from the people's current mood.
 
     return Row(
       children: [
         if (_isHistoryVisible)
-          LeftSidebar(
-            chatHistory: chatHistory,
-            currentPeople: widget.people,
-            onNewChat: _startNewChat,
-            onSessionSelected: (sessionTitle) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    "Selected session: $sessionTitle",
-                    style: TextStyle(color: Colors.white),
+          SafeArea(
+            child: LeftSidebar(
+              chatHistory: chatHistory,
+              currentPeople: widget.people,
+              onNewChat: _startNewChat,
+              onSessionSelected: (sessionTitle) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      "Selected session: $sessionTitle",
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         Expanded(
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      _isHistoryVisible
-                          ? Icons.keyboard_arrow_left
-                          : Icons.keyboard_arrow_right,
-                      color: Colors.white,
-                    ),
-                    tooltip:
-                        _isHistoryVisible ? 'Hide History' : 'Show History',
-                    onPressed: _toggleHistory,
-                  ),
-                ],
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.all(8),
-                  itemCount: widget.messages.length,
-                  itemBuilder: (context, index) {
-                    // Determine if the message is from AI by checking its prefix
-                    bool isUser = !widget.messages[index].startsWith("AI:");
-                    return Container(
-                      margin: EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        mainAxisAlignment:
-                            isUser
-                                ? MainAxisAlignment.end
-                                : MainAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.only(top: kToolbarHeight + 16.0),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left column with toggle and new chat buttons
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            padding: EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color:
-                                  isUser ? Colors.green[100] : Colors.blue[100],
-                              borderRadius: BorderRadius.circular(8),
+                          IconButton(
+                            icon: Icon(
+                              _isHistoryVisible
+                                  ? Icons.keyboard_arrow_left
+                                  : Icons.keyboard_arrow_right,
+                              size: 32,
+                              color: Colors.white,
                             ),
-                            child: Text(widget.messages[index]),
+                            tooltip:
+                                _isHistoryVisible
+                                    ? 'Hide History'
+                                    : 'Show History',
+                            onPressed: _toggleHistory,
+                          ),
+                          SizedBox(height: 8),
+                          IconButton(
+                            icon: Icon(
+                              Icons.add,
+                              size: 32,
+                              color: Colors.white,
+                            ),
+                            tooltip: 'New Chat',
+                            onPressed: () => _startNewChat(widget.people),
                           ),
                         ],
                       ),
-                    );
-                  },
-                ),
-              ),
-              // Chat input with styled text field using moodColor
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: widget.chatController,
-                        textInputAction: TextInputAction.send,
-                        style: TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: "Type your message...",
-                          border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(width: 2.0),
+                      // Right side with text bubbles
+                      Expanded(
+                        child: ListView.builder(
+                          padding: EdgeInsets.only(
+                            top: 0,
+                            left: 8,
+                            right: 8,
+                            bottom: 8,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.grey,
-                              width: 1.0,
+                          itemCount: widget.messages.length,
+                          itemBuilder: (context, index) {
+                            bool isUser =
+                                !widget.messages[index].startsWith("AI:");
+                            return Container(
+                              margin: EdgeInsets.symmetric(
+                                vertical: 4,
+                                horizontal: 16,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    isUser
+                                        ? MainAxisAlignment.end
+                                        : MainAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          isUser ? Colors.white : Colors.blue,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        maxWidth:
+                                            MediaQuery.of(context).size.width *
+                                            0.7,
+                                      ),
+                                      child: Text(widget.messages[index]),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Chat input with styled text field using moodColor
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: widget.chatController,
+                          textInputAction: TextInputAction.send,
+                          keyboardType: TextInputType.multiline,
+                          minLines: 1,
+                          maxLines: 5,
+                          style: TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: "Type your message...",
+                            border: OutlineInputBorder(),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                width: 2.0,
+                                color: Colors.white,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.grey,
+                                width: 1.0,
+                              ),
                             ),
                           ),
+                          onSubmitted: (value) {
+                            _handleSendMessage();
+                          },
                         ),
-                        onSubmitted: (value) {
-                          _handleSendMessage();
-                        },
                       ),
-                    ),
-                    SizedBox(width: 8),
-                    IconButton(
-                      icon:
-                          widget.chatController.text.isNotEmpty
-                              ? Icon(Icons.send, color: Colors.white)
-                              : Icon(Icons.send, color: Colors.grey),
-                      onPressed:
-                          widget.chatController.text.isNotEmpty
-                              ? _handleSendMessage
-                              : null,
-                    ),
-                  ],
+                      SizedBox(width: 8),
+                      IconButton(
+                        icon:
+                            widget.chatController.text.isNotEmpty
+                                ? Icon(Icons.send, color: Colors.white)
+                                : Icon(Icons.send, color: Colors.grey),
+                        onPressed:
+                            widget.chatController.text.isNotEmpty
+                                ? _handleSendMessage
+                                : null,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
