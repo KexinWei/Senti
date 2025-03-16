@@ -3,20 +3,37 @@ const axios = require('axios');
 async function analyzeEmotion(conversation) {
   try {
     const prompt = `
-You are a professional conversation analyst specializing in emotion detection.
-Your task is to analyze the emotional state of the speaker based on the given conversation and provide a judgment along with actionable advice.
-Output only the result in valid JSON format without any additional explanation or commentary.
-
-### Input:
-"${conversation}"
-
-### Required Output (JSON format):
-{
-    "emotion": "<Predicted Emotion>",
-    "possible_causes": "<Possible causes of this emotion>",
-    "suggestion": "<Advice for the user>"
-}
-        `;
+      You are a professional conversation analyst with expertise in understanding and evaluating the emotional tone of a conversation partner.
+      Below is the complete multi-turn conversation transcript between "me" (the user) and "them" (the conversation partner). Your task is to ignore any utterances that belong to me (the user) – for example, phrases like "I said" or "I mentioned" – and focus solely on analyzing the conversation partner's messages.
+      
+      Based solely on the partner's dialogue, please perform the following tasks:
+      1. Analyze the conversation partner's messages and determine any emotional variations throughout the conversation.
+      2. If only one consistent emotion is detected, output it as a single entry in the "emotions" array.
+      3. If multiple distinct emotions are detected, output each emotion as an object in the "emotions" array. For each object, include:
+         - "emotion": the identified emotion.
+         - "turn_range": a description of which turns (or parts) of the conversation this emotion appears.
+         - "notes": any additional analysis or observations about that emotional segment.
+      4. Analyze the overall conversation for possible causes of the emotional variations and provide actionable advice on how to respond appropriately.
+      
+      IMPORTANT: Your output MUST be strictly in valid JSON format with the following structure:
+      
+      {
+        "emotions": [
+          {
+            "emotion": "<Emotion>",
+            "turn_range": "<Description of the turns where this emotion appears>",
+            "notes": "<Additional notes about emotion>"
+          }
+        ],
+        "possible_causes": "<Possible causes for the emotional variations>",
+        "suggestion": "<Advice for responding appropriately>"
+      }
+      
+      If any of the items are not applicable, leave them as an empty string (for text fields) or an empty array (for the emotions array if no emotions are detected).
+      
+      Conversation Transcript:
+      "${conversation}"
+    `;
 
     // 调用 Mistral 模型，设置 stream 为 false，确保返回完整输出
     const response = await axios.post("http://127.0.0.1:11434/api/generate", {
