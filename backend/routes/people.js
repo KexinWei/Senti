@@ -7,8 +7,8 @@ router.get("/", (req, res) => {
   const sql = "SELECT * FROM People ORDER BY created_at DESC";
   db.all(sql, [], (err, rows) => {
     if (err) {
-      console.error("Failed to fetch people:", err.message);
-      return res.status(500).json({ error: "Failed to fetch people" });
+      console.error("Error fetching People:", err.message);
+      return res.status(500).json({ error: err.message });
     }
     res.json({ people: rows });
   });
@@ -20,8 +20,8 @@ router.get("/:id", (req, res) => {
   const params = [req.params.id];
   db.get(sql, params, (err, row) => {
     if (err) {
-      console.error("Failed to fetch person:", err.message);
-      return res.status(500).json({ error: "Failed to fetch person" });
+      console.error("Error fetching person:", err.message);
+      return res.status(500).json({ error: err.message });
     }
     if (!row) {
       return res.status(404).json({ error: "Person not found" });
@@ -45,17 +45,15 @@ router.post("/", (req, res) => {
 
   db.run(sql, params, function (err) {
     if (err) {
-      console.error("Failed to create person:", err.message);
-      return res.status(500).json({ error: "Failed to create person" });
+      console.error("Error adding person:", err.message);
+      return res.status(500).json({ error: err.message });
     }
 
-    // Get newly created user data
+    // 获取新创建的用户数据
     db.get("SELECT * FROM People WHERE id = ?", [this.lastID], (err, row) => {
       if (err) {
-        console.error("Failed to fetch created person:", err.message);
-        return res
-          .status(500)
-          .json({ error: "Failed to fetch created person" });
+        console.error("Error fetching new person:", err.message);
+        return res.status(500).json({ error: err.message });
       }
       res.status(201).json({ people: row });
     });
