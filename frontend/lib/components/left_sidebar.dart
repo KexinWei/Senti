@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/people.dart';
 import '../models/chat_session.dart'; // <-- Added import for the new session model
+import '../services/api_service.dart';
+
 
 final String defaultDatetimeFormat = 'yyyy-MM-dd HH:mm:ss';
 
@@ -22,20 +24,82 @@ final String defaultDatetimeFormat = 'yyyy-MM-dd HH:mm:ss';
 // }
 
 // 1. Update the LeftSidebar widget definition to accept the new parameter.
-class LeftSidebar extends StatelessWidget {
-  final List<ChatSession> chatHistory;
+class LeftSidebar extends StatefulWidget {
   final People currentPeople;
-  final Function(People) onNewChat;
-  final Function(String) onSessionSelected;
-  final String? currentSessionId; // New parameter
+  final Function(ChatSession) onSessionSelected;
+  final Function() onNewChat;
+
 
   const LeftSidebar({
-    required this.chatHistory,
+    Key? key,
     required this.currentPeople,
-    required this.onNewChat,
     required this.onSessionSelected,
-    this.currentSessionId, // Optional parameter to indicate selected session
-  });
+    required this.onNewChat,
+  }) : super(key: key);
+
+  @override
+  _LeftSidebarState createState() => _LeftSidebarState();
+}
+
+class _LeftSidebarState extends State<LeftSidebar> {
+  final ApiService _apiService = ApiService();
+  List<ChatSession> _sessions = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSessions();
+  }
+
+  @override
+  void didUpdateWidget(LeftSidebar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentPeople.id != widget.currentPeople.id) {
+      _loadSessions();
+    }
+  }
+
+  Future<void> _loadSessions() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final sessions = await _apiService.getSessionsByPeopleId(
+        widget.currentPeople.id!,
+      );
+      setState(() {
+        _sessions = sessions;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _createNewSession() async {
+    try {
+      final session = await _apiService.createSession(widget.currentPeople.id!);
+      setState(() {
+        _sessions.insert(0, session); // Add new session at the beginning
+      });
+      widget.onSessionSelected(session);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create new session: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
 
   /// Determine the section name based on the last message time.
   String _getSectionName(DateTime date) {
@@ -78,79 +142,103 @@ class LeftSidebar extends StatelessWidget {
     }
 
     return Container(
-      margin: EdgeInsets.only(top: 16.0),
-      width: 250,
-      // Instead of using withOpacity, construct a color directly (if needed):
-      color: Color.fromRGBO(66, 66, 66, 0.2),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title for the sidebar.
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Chat History',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
+      width: 300,
+      color: Colors.grey[850],
+      child: Column(
+        children: [_buildHeader(), Expanded(child: _buildSessionsList())],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        border: Border(bottom: BorderSide(color: Colors.grey[800]!, width: 1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.currentPeople.name,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  if (item is String) {
-                    // Section header.
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 4.0,
-                        horizontal: 16.0,
-                      ),
-                      child: Text(
-                        item,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    );
-                  } else if (item is ChatSession) {
-                    bool isSelected =
-                        (currentSessionId != null &&
-                            item.sessionId == currentSessionId);
-                    return ListTile(
-                      title: Text(
-                        item.title,
-                        style: TextStyle(
-                          color: isSelected ? Colors.blue : Colors.white,
-                        ),
-                      ),
-                      subtitle: Text(
-                        DateFormat(
-                          defaultDatetimeFormat,
-                        ).format(item.lastMessageTime),
-                        style: TextStyle(
-                          color:
-                              isSelected
-                                  ? Colors.blue.shade200
-                                  : Colors.white70,
-                        ),
-                      ),
-                      onTap: () => onSessionSelected(item.sessionId),
-                    );
-                  } else {
-                    return SizedBox.shrink();
-                  }
-                },
-              ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            widget.currentPeople.relationship,
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _createNewSession,
+            icon: Icon(Icons.add),
+            label: Text('New Consultation'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[700],
+              minimumSize: Size(double.infinity, 40),
+
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildSessionsList() {
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Error loading sessions', style: TextStyle(color: Colors.red)),
+            SizedBox(height: 8),
+            ElevatedButton(onPressed: _loadSessions, child: Text('Retry')),
+          ],
+        ),
+      );
+    }
+
+    if (_sessions.isEmpty) {
+      return Center(
+        child: Text(
+          'No sessions yet.\nStart a new consultation!',
+          style: TextStyle(color: Colors.white70),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _sessions.length,
+      itemBuilder: (context, index) {
+        final session = _sessions[index];
+        return ListTile(
+          title: Text(
+            session.title,
+            style: TextStyle(color: Colors.white),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            _formatDate(session.createdAt),
+            style: TextStyle(color: Colors.white70),
+          ),
+          onTap: () => widget.onSessionSelected(session),
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }

@@ -19,9 +19,6 @@ class PeopleSelectionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    TextEditingController nameController = TextEditingController();
-    TextEditingController relationshipController = TextEditingController();
-
     return SafeArea(
       child: SingleChildScrollView(
         child: Padding(
@@ -30,134 +27,119 @@ class PeopleSelectionView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Select the Person You Are Chatting With:",
+                "Who do you have a problem with?",
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               SizedBox(height: 8),
+              Text(
+                "Select a person you want to improve your communication with",
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+              SizedBox(height: 24),
               GridView.builder(
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),
                 itemCount: peoples.length + 1,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 4,
-                  mainAxisSpacing: 2,
-                  crossAxisSpacing: 2,
-                  childAspectRatio: 1.3,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 1.0,
                 ),
                 itemBuilder: (context, index) {
                   if (index < peoples.length) {
                     final people = peoples[index];
-                    return MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: () => onPeopleSelected(people),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircleAvatar(
-                              radius: 35,
-                              backgroundColor: Colors.transparent,
-                              backgroundImage: AssetImage(
-                                'icons8-person-94.png',
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              people.name,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return _buildPersonCard(context, people);
                   } else {
-                    // "Create New People" cell.
-                    return MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) {
-                              return CreatePeopleDialog(
-                                onCreatePeople: onCreatePeople,
-                              );
-                            },
-                          );
-                        },
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircleAvatar(
-                              radius: 35,
-                              backgroundColor: Colors.blue,
-                              child: Icon(
-                                Icons.add,
-                                color: Colors.white,
-                                size: 30,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "Add New",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return _buildAddNewCard(context);
                   }
                 },
               ),
-              if (showAddUserForm)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 8),
-                    Text(
-                      "Create a New People",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(labelText: "People Name"),
-                    ),
-                    TextField(
-                      controller: relationshipController,
-                      decoration: InputDecoration(labelText: "Relationship"),
-                    ),
-                    SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        if (nameController.text.isNotEmpty &&
-                            relationshipController.text.isNotEmpty) {
-                          onCreatePeople(
-                            nameController.text,
-                            relationshipController.text,
-                          );
-                        }
-                      },
-                      child: Text("Create People"),
-                    ),
-                  ],
-                ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPersonCard(BuildContext context, People people) {
+    return Card(
+      color: Colors.grey[800],
+      child: InkWell(
+        onTap: () => onPeopleSelected(people),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 35,
+                backgroundColor: Colors.blue[700],
+                child: Text(
+                  people.name[0].toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 24,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                people.name,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 4),
+              Text(
+                people.relationship,
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddNewCard(BuildContext context) {
+    return Card(
+      color: Colors.blue[700],
+      child: InkWell(
+        onTap: () {
+          showDialog(
+            context: context,
+            builder:
+                (context) => CreatePeopleDialog(onCreatePeople: onCreatePeople),
+          );
+        },
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_circle_outline, color: Colors.white, size: 48),
+            SizedBox(height: 8),
+            Text(
+              "Add New Person",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+
         ),
       ),
     );
