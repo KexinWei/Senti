@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // For date formatting
 import '../models/target.dart';
 import '../components/left_sidebar.dart';
 
-// A helper function to map mood to a color.
+/// A helper function to map mood to a color.
 Color getMoodColor(String mood) {
   switch (mood.toLowerCase()) {
     case 'happy':
@@ -19,7 +20,7 @@ Color getMoodColor(String mood) {
 }
 
 class ChatConversationView extends StatefulWidget {
-  final List<String> messages;
+  final List<String> messages; // Initial messages from HomeScreen (usually empty)
   final TextEditingController chatController;
   final VoidCallback onSendMessage;
   final Target target;
@@ -37,57 +38,103 @@ class ChatConversationView extends StatefulWidget {
 
 class _ChatConversationViewState extends State<ChatConversationView> {
   bool _isHistoryVisible = true;
-  List<String> chatHistory = [];
 
-  // Save current conversation session title to history (if any messages exist),
-  // then clear current conversation and selected target.
+  /// Map to store past sessions.
+  /// Key: session title (e.g. "Chat with Alice ## 2023-03-15 14:20")
+  /// Value: list of messages for that session.
+  Map<String, List<String>> _sessionHistory = {};
+
+  /// Current session messages (the conversation in progress)
+  late List<String> _currentMessages;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize current messages with what is passed from HomeScreen.
+    _currentMessages = List.from(widget.messages);
+  }
+
+  /// When the user decides to finish the current chat and start a new one,
+  /// save the current session (if not empty) into the session history.
   void _startNewChat(Target target) {
-    if (widget.messages.isNotEmpty) {
-      String sessionTitle = "Chat with ${target.name}";
-      chatHistory.add(sessionTitle);
+    if (_currentMessages.isNotEmpty) {
+      // Create a session title including the current date/time.
+      final now = DateTime.now();
+      final formattedDate = DateFormat(defaultDatetimeFormat).format(now);
+      String sessionTitle = "Chat with ${target.name} ## $formattedDate";
+      _sessionHistory[sessionTitle] = List.from(_currentMessages);
     }
+    // Clear current messages for a new conversation.
     setState(() {
-      widget.messages.clear();
+      _currentMessages.clear();
     });
   }
 
+  /// When a message is sent, append it (and, for demo, a dummy AI reply) to current messages.
+  void _handleSendMessage() {
+    final text = widget.chatController.text.trim();
+    if (text.isEmpty) return;
+    widget.onSendMessage();
+
+    setState(() {
+      _currentMessages.add("You: $text");
+      _currentMessages.add("AI: This is a dummy reply");
+    });
+
+    widget.onSendMessage();
+    widget.chatController.clear();
+  }
+
+  /// Toggle the visibility of the left sidebar.
   void _toggleHistory() {
     setState(() {
       _isHistoryVisible = !_isHistoryVisible;
     });
   }
 
-  void _handleSendMessage() {
-    widget.onSendMessage();
+  /// Load a previously saved session.
+  void _loadSession(String sessionTitle) {
     setState(() {
-      widget.messages.add("AI: This is a dummy reply");
+      _currentMessages = List.from(_sessionHistory[sessionTitle] ?? []);
     });
-    widget.chatController.clear();
+  }
+
+  /// Get a list of session titles for the left sidebar.
+  List<String> get _chatHistoryTitles {
+    return _sessionHistory.keys.toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Determine the mood color from the target's current mood.
     final moodColor = getMoodColor(widget.target.currentMood);
-
+    // Parse session strings.
     return Row(
       children: [
         if (_isHistoryVisible)
           LeftSidebar(
-            chatHistory: chatHistory,
+            // Pass the list of session titles.
+            chatHistory: _chatHistoryTitles,
             currentTarget: widget.target,
-            onNewChat: _startNewChat,
+            // When "New Chat" is pressed in the sidebar, finish current session.
+            onNewChat: (target) => _startNewChat(target),
+            // When a session is selected from the sidebar, load its messages.
             onSessionSelected: (sessionTitle) {
+              _loadSession(sessionTitle);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Selected session: $sessionTitle")),
+                SnackBar(
+                  content: Text("Selected session: $sessionTitle"),
+                  action: SnackBarAction(label: "OK", onPressed: (){
+                    // pass
+                  },),
+                ),
               );
             },
           ),
         Expanded(
           child: Column(
             children: [
+              // Top row with a toggle button and target name.
               Row(
-                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   IconButton(
                     icon: Icon(
@@ -95,35 +142,33 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                           ? Icons.keyboard_arrow_left
                           : Icons.keyboard_arrow_right,
                     ),
-                    tooltip:
-                        _isHistoryVisible ? 'Hide History' : 'Show History',
+                    tooltip: _isHistoryVisible ? 'Hide History' : 'Show History',
                     onPressed: _toggleHistory,
                   ),
+                  Text(widget.target.name),
                 ],
               ),
+              // Chat messages list (shows current session messages)
               Expanded(
                 child: ListView.builder(
                   padding: EdgeInsets.all(8),
-                  itemCount: widget.messages.length,
+                  itemCount: _currentMessages.length,
                   itemBuilder: (context, index) {
-                    // Determine if the message is from AI by checking its prefix
-                    bool isUser = !widget.messages[index].startsWith("AI:");
+                    bool isUser = !_currentMessages[index].startsWith("AI:");
                     return Container(
                       margin: EdgeInsets.symmetric(vertical: 4),
                       child: Row(
-                        mainAxisAlignment:
-                            isUser
-                                ? MainAxisAlignment.end
-                                : MainAxisAlignment.start,
+                        mainAxisAlignment: isUser
+                            ? MainAxisAlignment.end
+                            : MainAxisAlignment.start,
                         children: [
                           Container(
                             padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color:
-                                  isUser ? Colors.green[100] : Colors.blue[100],
+                              color: isUser ? Colors.green[100] : Colors.blue[100],
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text(widget.messages[index]),
+                            child: Text(_currentMessages[index]),
                           ),
                         ],
                       ),
@@ -131,7 +176,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                   },
                 ),
               ),
-              // Chat input with styled text field using moodColor
+              // Input area for sending new messages.
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Row(
@@ -156,9 +201,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                             ),
                           ),
                         ),
-                        onSubmitted: (value) {
-                          _handleSendMessage();
-                        },
+                        onSubmitted: (value) => _handleSendMessage(),
                       ),
                     ),
                     SizedBox(width: 8),
