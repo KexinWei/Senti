@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const { initDB } = require('./database/initDB');
 
 const app = express();
+
 const port = process.env.PORT || 3000;
 
 // Initialize the database (create tables)
@@ -18,9 +19,11 @@ const peopleRoutes = require('./routes/people');
 const sessionsRoutes = require('./routes/sessions');
 const messagesRoutes = require('./routes/messages');
 
+
 app.use('/api/people', peopleRoutes);
 app.use('/api/sessions', sessionsRoutes);
 app.use('/api/messages', messagesRoutes);
+
 
 // 404 handler
 app.use((req, res, next) => {
@@ -32,6 +35,7 @@ app.use((err, req, res, next) => {
   console.error('Internal error:', err);
   res.status(500).json({ error: 'Internal Server Error' });
 });
+
 
 // Start the server
 app.listen(port, () => {
