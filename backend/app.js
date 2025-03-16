@@ -1,16 +1,39 @@
+// server/app.js
 const express = require('express');
+const bodyParser = require('body-parser');
+const { initDB } = require('./database/initDB');
+
 const app = express();
-const PORT = 3000; // 直接硬编码端口
-const db = require('./db'); // 连接 SQLite
+const port = process.env.PORT || 3000;
 
-// 中间件
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+// Initialize the database (create tables)
+initDB();
 
-// 挂载路由的地方
+// Use middleware to parse JSON request bodies
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
-// 启动服务器
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+// Load routes
+const peopleRoutes = require('./routes/people');
+const sessionsRoutes = require('./routes/sessions');
+const messagesRoutes = require('./routes/messages');
+
+app.use('/api/people', peopleRoutes);
+app.use('/api/sessions', sessionsRoutes);
+app.use('/api/messages', messagesRoutes);
+
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Internal error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running at http://localhost:${port}`);
 });
