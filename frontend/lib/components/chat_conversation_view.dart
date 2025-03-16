@@ -57,6 +57,14 @@ class _ChatConversationViewState extends State<ChatConversationView> {
     });
   }
 
+  void _handleSendMessage() {
+    widget.onSendMessage();
+    setState(() {
+      widget.messages.add("AI: This is a dummy reply");
+    });
+    widget.chatController.clear();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Determine the mood color from the target's current mood.
@@ -93,20 +101,32 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                   ),
                 ],
               ),
-              // Removed the first Expanded TextField section.
               Expanded(
                 child: ListView.builder(
                   padding: EdgeInsets.all(8),
                   itemCount: widget.messages.length,
                   itemBuilder: (context, index) {
+                    // Determine if the message is from AI by checking its prefix
+                    bool isUser = !widget.messages[index].startsWith("AI:");
                     return Container(
                       margin: EdgeInsets.symmetric(vertical: 4),
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[100],
-                        borderRadius: BorderRadius.circular(8),
+                      child: Row(
+                        mainAxisAlignment:
+                            isUser
+                                ? MainAxisAlignment.end
+                                : MainAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color:
+                                  isUser ? Colors.green[100] : Colors.blue[100],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(widget.messages[index]),
+                          ),
+                        ],
                       ),
-                      child: Text(widget.messages[index]),
                     );
                   },
                 ),
@@ -119,6 +139,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                     Expanded(
                       child: TextField(
                         controller: widget.chatController,
+                        textInputAction: TextInputAction.send,
                         decoration: InputDecoration(
                           hintText: "Type your message...",
                           border: OutlineInputBorder(),
@@ -135,12 +156,15 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                             ),
                           ),
                         ),
+                        onSubmitted: (value) {
+                          _handleSendMessage();
+                        },
                       ),
                     ),
                     SizedBox(width: 8),
                     IconButton(
                       icon: Icon(Icons.send),
-                      onPressed: widget.onSendMessage,
+                      onPressed: _handleSendMessage,
                     ),
                   ],
                 ),
