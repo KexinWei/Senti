@@ -5,6 +5,7 @@ import '../models/people.dart';
 import '../models/chat_session.dart'; // <-- Added import for the new session model
 import '../services/api_service.dart';
 
+
 final String defaultDatetimeFormat = 'yyyy-MM-dd HH:mm:ss';
 
 /// Remove the old SessionWithDate class since ChatSession is now defined in the models folder.
@@ -27,6 +28,7 @@ class LeftSidebar extends StatefulWidget {
   final People currentPeople;
   final Function(ChatSession) onSessionSelected;
   final Function() onNewChat;
+
 
   const LeftSidebar({
     Key? key,
@@ -98,8 +100,47 @@ class _LeftSidebarState extends State<LeftSidebar> {
     }
   }
 
+
+  /// Determine the section name based on the last message time.
+  String _getSectionName(DateTime date) {
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final startOfYesterday = startOfToday.subtract(Duration(days: 1));
+    final startOf7DaysAgo = startOfToday.subtract(Duration(days: 7));
+
+    if (date.isAfter(startOfToday)) {
+      return 'Today';
+    } else if (date.isAfter(startOfYesterday)) {
+      return 'Yesterday';
+    } else if (date.isAfter(startOf7DaysAgo)) {
+      return 'Previous 7 days';
+    } else {
+      return 'Earlier';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 3. Use the provided chatHistory directly as a list of ChatSession objects.
+    final sessionList = chatHistory;
+
+    // Group sessions by section.
+    Map<String, List<ChatSession>> grouped = {};
+    for (var s in sessionList) {
+      final sectionName = _getSectionName(s.lastMessageTime);
+      grouped.putIfAbsent(sectionName, () => []).add(s);
+    }
+
+    // Assemble a list of items: section headers and session items.
+    List<dynamic> items = [];
+    final sectionsOrder = ['Today', 'Yesterday', 'Previous 7 days', 'Earlier'];
+    for (var section in sectionsOrder) {
+      if (grouped.containsKey(section)) {
+        items.add(section);
+        items.addAll(grouped[section]!);
+      }
+    }
+
     return Container(
       width: 300,
       color: Colors.grey[850],
@@ -140,9 +181,10 @@ class _LeftSidebarState extends State<LeftSidebar> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue[700],
               minimumSize: Size(double.infinity, 40),
+
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

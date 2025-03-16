@@ -71,6 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // 创建新用户
   Future<void> _createPeople(String name, String relationship) async {
     try {
+
       setState(() {
         _error = null;
       });
@@ -185,8 +186,34 @@ class _HomeScreenState extends State<HomeScreen> {
                       people: _selectedPeople!,
                       session: _currentSession!,
                     ),
+
           ),
-        ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child:
+                  selectedPeople == null
+                      ? PeopleSelectionView(
+                        peoples: peoples,
+                        showAddUserForm: _showAddUserForm,
+                        onPeopleSelected: _selectPeople,
+                        onShowAddForm: () {
+                          setState(() {
+                            _showAddUserForm = true;
+                          });
+                        },
+                        onCreatePeople: _createPeople,
+                      )
+                      : ChatConversationView(
+                        messages: messages,
+                        chatController: _chatController,
+                        onSendMessage: _sendMessage,
+                        people: selectedPeople!,
+                      ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -139,6 +139,7 @@ class PeopleSelectionView extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ],
+
         ),
       ),
     );

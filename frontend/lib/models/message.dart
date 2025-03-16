@@ -1,6 +1,7 @@
 class Message {
   final int id;
   final int sessionId;
+
   final String sender;
   final String content;
   final DateTime createdAt;
@@ -35,4 +36,5 @@ class Message {
       'created_at': createdAt.toIso8601String(),
     };
   }
+
 }

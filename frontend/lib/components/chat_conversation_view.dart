@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../models/people.dart';
 import '../models/chat_session.dart';
 import '../models/message.dart';
+
 import '../services/api_service.dart';
 
 class ChatConversationView extends StatefulWidget {
+
   final People people;
   final ChatSession session;
 
@@ -19,6 +21,7 @@ class ChatConversationView extends StatefulWidget {
 }
 
 class _ChatConversationViewState extends State<ChatConversationView> {
+
   final ApiService _apiService = ApiService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -28,10 +31,12 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   bool _isSending = false;
   String? _error;
 
+
   @override
   void initState() {
     super.initState();
     _loadMessages();
+
   }
 
   @override
@@ -99,6 +104,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
         curve: Curves.easeOut,
       );
     }
+
   }
 
   @override
@@ -233,6 +239,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                 ),
               ),
               onSubmitted: (_) => _sendMessage(),
+
             ),
           ),
           SizedBox(width: 12),

@@ -33,4 +33,5 @@ class ChatSession {
       'created_at': createdAt.toIso8601String(),
     };
   }
+
 }
