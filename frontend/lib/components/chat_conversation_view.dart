@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // For date formatting
 import '../models/people.dart';
 import '../models/chat_session.dart';
 import '../models/message.dart';
@@ -60,21 +59,19 @@ class _ChatConversationViewState extends State<ChatConversationView> {
 
     setState(() {
       final now = DateTime.now();
-      final formattedDate = DateFormat(defaultDatetimeFormat).format(now);
 
       // If no session is active, create a new one.
       if (_currentSession == null) {
         _currentSession = ChatSession(
           sessionId: UniqueKey().toString(),
-          title: "Chat with ${widget.people.name} ## $formattedDate",
+          title: "Chat with ${widget.people.name}",
           lastMessageTime: now,
           messages: [],
         );
       } else {
         // Update the session's last message time and title.
         _currentSession!.lastMessageTime = now;
-        _currentSession!.title =
-            "Chat with ${widget.people.name} ## $formattedDate";
+        _currentSession!.title = "Chat with ${widget.people.name}";
       }
 
       // Create a new message (you can customize the sender logic as needed).
@@ -110,12 +107,13 @@ class _ChatConversationViewState extends State<ChatConversationView> {
     });
   }
 
-  void _loadSession(String sessionTitle) {
+  void _loadSession(String sessionId) {
     setState(() {
       _currentSession = _sessionHistory.firstWhere(
-        (session) => session.title == sessionTitle,
+        (session) => session.sessionId == sessionId,
         orElse:
-            () => _currentSession!, // or handle not found case appropriately
+            () =>
+                _currentSession!, // Optionally handle the case where the session is not found.
       );
     });
   }
@@ -127,11 +125,6 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   //   // Optionally, clear the text field after sending
   //   widget.chatController.clear();
   // }
-
-  /// Get a list of session titles for the left sidebar.
-  List<String> get _chatHistoryTitles {
-    return _sessionHistory.map((session) => session.title).toList();
-  }
 
   void dispose() {
     widget.chatController.removeListener(_onTextChanged);
@@ -146,7 +139,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
           SafeArea(
             child: LeftSidebar(
               // Pass the list of session titles.
-              chatHistory: _chatHistoryTitles,
+              chatHistory: _sessionHistory,
               currentPeople: widget.people,
               // When "New Chat" is pressed in the sidebar, finish current session.
               onNewChat: (people) => _startNewChat(people),
@@ -154,6 +147,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
               onSessionSelected: (sessionTitle) {
                 _loadSession(sessionTitle);
               },
+              currentSessionId: _currentSession?.sessionId,
             ),
           ),
         Expanded(
