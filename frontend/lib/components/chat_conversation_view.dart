@@ -83,13 +83,13 @@ class _ChatConversationViewState extends State<ChatConversationView> {
           child: Column(
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   IconButton(
                     icon: Icon(
                       _isHistoryVisible
-                          ? Icons.visibility_off
-                          : Icons.visibility,
+                          ? Icons.keyboard_arrow_left
+                          : Icons.keyboard_arrow_right,
                     ),
                     tooltip:
                         _isHistoryVisible ? 'Hide History' : 'Show History',

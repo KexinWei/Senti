@@ -20,10 +20,7 @@ class LeftSidebar extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              child: Text("New Chat"),
-              onPressed: onNewChat,
-            ),
+            child: ElevatedButton(child: Icon(Icons.add), onPressed: onNewChat),
           ),
           Divider(),
           Expanded(
