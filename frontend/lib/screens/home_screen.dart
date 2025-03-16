@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/target.dart';
 import '../components/target_selection_view.dart';
 import '../components/chat_conversation_view.dart';
-import '../components/left_sidebar.dart';
 
 class HomeScreen extends StatefulWidget {
   @override

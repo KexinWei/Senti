@@ -38,21 +38,16 @@ class ChatConversationView extends StatefulWidget {
 class _ChatConversationViewState extends State<ChatConversationView> {
   bool _isHistoryVisible = true;
   List<String> chatHistory = [];
-  // Manage selected target and additional state if needed
-  Target? selectedTarget;
-  bool _showAddUserForm = false;
 
   // Save current conversation session title to history (if any messages exist),
   // then clear current conversation and selected target.
-  void _startNewChat() {
-    if (selectedTarget != null && widget.messages.isNotEmpty) {
-      String sessionTitle = "Chat with ${selectedTarget!.name}";
+  void _startNewChat(Target target) {
+    if (widget.messages.isNotEmpty) {
+      String sessionTitle = "Chat with ${target.name}";
       chatHistory.add(sessionTitle);
     }
     setState(() {
-      selectedTarget = null;
       widget.messages.clear();
-      _showAddUserForm = false;
     });
   }
 
@@ -72,6 +67,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
         if (_isHistoryVisible)
           LeftSidebar(
             chatHistory: chatHistory,
+            currentTarget: widget.target,
             onNewChat: _startNewChat,
             onSessionSelected: (sessionTitle) {
               ScaffoldMessenger.of(context).showSnackBar(
