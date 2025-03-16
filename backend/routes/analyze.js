@@ -1,40 +1,43 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const EmotionAnalyzer = require("../models/emotionAnalyzer");
+const analyzeEmotion = require('../models/emotionAnalyzer');
 
-// Analyze emotions in text
-router.post("/emotions", async (req, res) => {
-  const { text } = req.body;
-
-  if (!text) {
-    res.status(400).json({ error: "Text is required for analysis" });
-    return;
-  }
-
+// 处理情绪分析的 API
+router.post('/', async (req, res) => {
   try {
-    const analyzer = new EmotionAnalyzer();
-    const emotions = await analyzer.analyzeEmotions(text);
-    res.json({ emotions });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to analyze emotions" });
-  }
-});
-
-// Get emotion analysis history
-router.get("/history/:sessionId", (req, res) => {
-  const sessionId = req.params.sessionId;
-
-  db.all(
-    "SELECT * FROM EmotionAnalysis WHERE session_id = ? ORDER BY created_at DESC",
-    [sessionId],
-    (err, rows) => {
-      if (err) {
-        res.status(500).json({ error: "Failed to fetch emotion history" });
-        return;
-      }
-      res.json({ history: rows });
+    const { conversation } = req.body;
+    if (!conversation || typeof conversation !== 'string') {
+      return res.status(400).json({ error: 'Invalid input. Expecting a text conversation.' });
     }
-  );
+
+    // 调用情绪分析函数
+    const result = await analyzeEmotion(conversation);
+
+    // 只保留需要的字段： created_at 和 response（注意 response 可能是 JSON 字符串，需要解析）
+    let analysisResult = {};
+    if (result && result.created_at && result.response) {
+      analysisResult.created_at = result.created_at;
+      try {
+        // 如果 result.response 是 JSON 字符串，则解析为对象
+        analysisResult.response = typeof result.response === 'string'
+            ? JSON.parse(result.response)
+            : result.response;
+      } catch (e) {
+        // 如果解析失败，直接返回原始字符串
+        analysisResult.response = result.response;
+      }
+    } else {
+      analysisResult = result;
+    }
+
+    res.json({
+      message: "Emotion analysis completed successfully.",
+      analysis: analysisResult
+    });
+  } catch (error) {
+    console.error("Emotion analysis error:", error);
+    res.status(500).json({ error: "Internal server error during emotion analysis." });
+  }
 });
 
 module.exports = router;

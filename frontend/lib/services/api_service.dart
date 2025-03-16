@@ -7,7 +7,7 @@ import '../models/message.dart';
 class ApiService {
   static const String baseUrl = 'http://localhost:3000/api';
 
-  // Get all users
+  // 获取所有用户
   Future<List<People>> getPeople() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/people'));
@@ -22,7 +22,7 @@ class ApiService {
     }
   }
 
-  // Create new user
+  // 创建新用户
   Future<People> createPeople(
     String name,
     String relationship, {
@@ -50,7 +50,7 @@ class ApiService {
     }
   }
 
-  // Get all sessions for a user
+  // 获取用户的所有会话
   Future<List<ChatSession>> getSessionsByPeopleId(int peopleId) async {
     try {
       final response = await http.get(
@@ -67,7 +67,7 @@ class ApiService {
     }
   }
 
-  // Create new session
+  // 创建新会话
   Future<ChatSession> createSession(int peopleId, {String? title}) async {
     try {
       final response = await http.post(
@@ -87,7 +87,7 @@ class ApiService {
     }
   }
 
-  // Get all messages for a session
+  // 获取会话的所有消息
   Future<List<Message>> getMessagesBySessionId(int sessionId) async {
     try {
       final response = await http.get(
@@ -104,7 +104,7 @@ class ApiService {
     }
   }
 
-  // Send new message
+  // 发送新消息
   Future<Message> sendMessage(int sessionId, String content) async {
     try {
       final response = await http.post(
@@ -128,7 +128,7 @@ class ApiService {
     }
   }
 
-  // Delete session
+  // 删除会话
   Future<void> deleteSession(int sessionId) async {
     try {
       final response = await http.delete(
@@ -143,7 +143,7 @@ class ApiService {
     }
   }
 
-  // Get message count for a session
+  // 获取会话的消息数量
   Future<int> getSessionMessageCount(int sessionId) async {
     try {
       final response = await http.get(
